@@ -9,15 +9,12 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "prepare": "husky",
-    "lint": "eslint --ext .ts src",
-    "lint:check": "eslint --ext .ts src --max-warnings=0",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
   "lint-staged": {
     "**/*.{js,ts,less,md,json}": [
-      "prettier --write",
-      "eslint --fix"
+      "prettier --write"
     ]
   },
   "dependencies": {
@@ -34,10 +31,7 @@
   "devDependencies": {
     "@types/node": "^24.7.1",
     "@types/pg": "^8.15.5",
-    "@typescript-eslint/eslint-plugin": "^8.46.0",
-    "@typescript-eslint/parser": "^8.46.0",
     "drizzle-kit": "^0.31.5",
-    "eslint": "^9.37.0",
     "husky": "^9.1.7",
     "lint-staged": "^16.2.4",
     "prettier": "^3.6.2",
