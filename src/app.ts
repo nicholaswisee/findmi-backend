@@ -3,6 +3,7 @@ import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
+import { hello } from './routes/hello';
 
 export const app = new OpenAPIHono({
   defaultHook: (result, c) => {
@@ -41,3 +42,4 @@ app.get('/', (c) =>
 );
 
 app.get('/docs', swaggerUI({ url: '/openapi.json' }));
+app.route('/hello', hello as any);
