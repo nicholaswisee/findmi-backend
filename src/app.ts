@@ -42,4 +42,4 @@ app.get('/', (c) =>
 );
 
 app.get('/docs', swaggerUI({ url: '/openapi.json' }));
-app.route('/hello', hello as any);
+app.route('/hello', hello);
