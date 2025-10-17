@@ -22,6 +22,13 @@
       "when": 1760630766147,
       "tag": "0002_mighty_darkhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1760676027153,
+      "tag": "0003_illegal_white_queen",
+      "breakpoints": true
     }
   ]
 }
