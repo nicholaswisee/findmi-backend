@@ -126,8 +126,8 @@ export const cartItemsTable = pgTable(
     }),
     quantity: integer().notNull().default(1),
   },
-  (table) => ({
-    xorConstraint: check(
+  (table) => [
+    check(
       'product_or_bundle_xor',
       sql`(
         (product_id IS NOT NULL AND bundle_id IS NULL)
@@ -135,5 +135,5 @@ export const cartItemsTable = pgTable(
         (product_id IS NULL AND bundle_id IS NOT NULL)
       )`,
     ),
-  }),
+  ],
 );
