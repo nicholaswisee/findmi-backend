@@ -32,7 +32,64 @@ export const userDepartmentEnum = pgEnum('department_enum', [
   'none',
 ]);
 // TODO: Fill Division Enum: MSDM, PSDM, ...
-export const userDivisionEnum = pgEnum('division_enum', ['Panitia', 'none']);
+export const userDivisionEnum = pgEnum('division_enum', [
+  // Sekbenbid
+  'Sekretaris',
+  'Bendahara',
+  'Sekretaris & Bendahara',
+
+  // From Sekretariat Jendral
+  'Perizinan',
+
+  // From Manajemen Personalia
+  'MSDM',
+  'PSDM',
+
+  // From Perangkat Lapangan Utama (under Komandan Lapangan)
+  'Pengawasan',
+  'Eksekusi',
+
+  // From ITB Day
+  'Lapangan',
+  'Tour',
+  'Event Organizer',
+  'Exhibition',
+  'Pre-Event',
+
+  // From Relasi
+  'Intrakampus',
+  'Ekstrakampus',
+
+  // From Kreatif
+  'Grafis',
+  'Dokumentasi',
+  'Publikasi',
+  'Musik',
+  'Properti',
+
+  // From Diseminasi
+  'Diseminasi Umum',
+  'Diseminasi Khusus',
+
+  // From Paguyuban Membangun
+  'Roadshow Paguyuban',
+  'Forum Paguyuban',
+
+  // From Fundraising
+  'Sponsorship',
+  'Entrepreneurship',
+
+  // From Operasional
+  'Logistik',
+  'Produksi',
+  'Akomodasi dan Transportasi',
+
+  // From IT
+  'IT',
+
+  'Panitia',
+  'none',
+]);
 
 export const userRankEnum = pgEnum('rank_enum', [
   'Ketua',
