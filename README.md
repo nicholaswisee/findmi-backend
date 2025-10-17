@@ -1,3 +1,4 @@
+```
 findmi-backend/
 │
 ├── src/
@@ -69,3 +70,4 @@ findmi-backend/
 ├── bun.lockb # Lockfile Bun
 ├── package.json # Dependencies
 └── README.md
+```
