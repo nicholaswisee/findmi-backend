@@ -1,0 +1,31 @@
+version: '3.9'
+services:
+  backend:
+    build: .
+    container_name: findmi-backend
+    ports:
+      - '6969:6969'
+    env_file:
+      - .env
+    depends_on:
+      - db
+    environment:
+      NODE_ENV: production
+    command: ['bun', 'run', 'dist/index.js']
+    restart: always
+
+  db:
+    image: postgres:16
+    container_name: findmi-db
+    restart: always
+    environment:
+      POSTGRES_USER: ami
+      POSTGRES_PASSWORD: sopankanAthillaAMI2026
+      POSTGRES_DB: findmi2026
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

@@ -3,8 +3,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "start": "bun run dist/index.js",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
@@ -14,7 +14,7 @@
   },
   "lint-staged": {
     "**/*.{js,ts,less,md,json}": [
-      "prettier --write"
+      "prettier --write ."
     ]
   },
   "dependencies": {
