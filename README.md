@@ -1,4 +1,53 @@
+# FindMI Backend
+
+This is the backend API for FindMI 2026, built with [Hono](https://hono.dev/) and TypeScript. It provides a RESTful API with OpenAPI documentation, CORS, logging, and JSON formatting out of the box.
+
+## Tech stack
+
+- Runtime & package manager: Bun
+- Web framework: Hono
+- Language: TypeScript
+- Validation: Zod
+- ORM / migrations: Drizzle (Postgres)
+- API spec: OpenAPI 3.1 + Swagger UI
+
+## Getting Started
+
+### Prerequisites
+
+- Bun (v1.0+). We standardize on Bun for local development and running scripts. See [bun.sh](https://bun.sh) for install instructions.
+
+### Installation
+
+#### 1. Clone the repository
+
+```bash
+git clone https://github.com/AMI-2026/findmi-backend.git
+cd findmi-backend
 ```
+
+#### 2. Install dependencies (using Bun)
+
+```bash
+bun install
+```
+
+### Development Mode
+
+For hot-reloading during development:
+
+```bash
+bun run dev
+```
+
+## API Documentation
+
+- OpenAPI JSON: [http://localhost:3000/openapi.json](http://localhost:3000/openapi.json)
+- Swagger UI: [http://localhost:3000/docs](http://localhost:3000/docs)
+
+## Project Structure
+
+```sh
 findmi-backend/
 │
 ├── src/
@@ -71,3 +120,11 @@ findmi-backend/
 ├── package.json # Dependencies
 └── README.md
 ```
+
+## Environment Variables
+
+Create a `.env` file in the root directory for local development. See `src/utils/env.ts` for required variables.
+
+## Database Migrations
+
+This project uses [Drizzle ORM](https://orm.drizzle.team/) for schema and migrations. See `drizzle/` for migration files.
