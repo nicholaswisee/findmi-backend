@@ -103,6 +103,20 @@ export const userRankEnum = pgEnum('rank_enum', [
   'none',
 ]);
 
+export const orderPaymentStatusEnum = pgEnum('payment_status_enum', [
+  'Pending',
+  'Paid',
+  'Failed',
+  'Refunded',
+]);
+
+export const orderPaymentMethodEnum = pgEnum('payment_method_enum', [
+  'Manual',
+  'Xendit',
+  'Midtrans',
+  'GoPay', // edit later
+]);
+
 export const usersTable = pgTable('users', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: varchar({ length: 255 }).notNull(),
@@ -186,6 +200,47 @@ export const cartItemsTable = pgTable(
   (table) => [
     check(
       'product_or_bundle_xor',
+      sql`(
+        (product_id IS NOT NULL AND bundle_id IS NULL)
+        OR
+        (product_id IS NULL AND bundle_id IS NOT NULL)
+      )`,
+    ),
+  ],
+);
+
+export const ordersTable = pgTable('orders', {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  user_id: integer()
+    .notNull()
+    .references(() => usersTable.id, { onDelete: 'cascade' }),
+  total_amount: numeric().notNull().default('0.00'),
+  payment_status: varchar({ length: 50 }).notNull().default('pending'),
+  payment_method: varchar({ length: 50 }).notNull().default('manual'),
+  transaction_id: varchar({ length: 255 }), // gateway reference, if any
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const orderItemsTable = pgTable(
+  'order_items',
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    order_id: integer()
+      .notNull()
+      .references(() => ordersTable.id, { onDelete: 'cascade' }),
+    product_id: integer().references(() => productsTable.id, {
+      onDelete: 'cascade',
+    }),
+    bundle_id: integer().references(() => bundlesTable.id, {
+      onDelete: 'cascade',
+    }),
+    quantity: integer().notNull().default(1),
+    unit_price: numeric().notNull().default('0.00'),
+  },
+  (table) => [
+    check(
+      'product_or_bundle_xor_order',
       sql`(
         (product_id IS NOT NULL AND bundle_id IS NULL)
         OR

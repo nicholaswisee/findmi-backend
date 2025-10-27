@@ -2,19 +2,30 @@ import { serve } from '@hono/node-server';
 import { app } from './app';
 import { loadEnv } from './utils/env';
 import 'dotenv/config';
-import { drizzle } from 'drizzle-orm/node-postgres';
 
 loadEnv();
-const db = drizzle(process.env.DATABASE_URL!);
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-serve(
-  {
-    fetch: app.fetch,
-    port: PORT,
-  },
-  (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`);
-  },
-);
+async function bootstrap() {
+  try {
+    const { db } = await import('./db/db');
+    await db.execute('SELECT 1');
+    console.log('Database connected successfully');
+
+    serve(
+      {
+        fetch: app.fetch,
+        port: PORT,
+      },
+      (info) => {
+        console.log(`Server running on http://localhost:${info.port}`);
+      },
+    );
+  } catch (err) {
+    console.error('Database connection failed:', err);
+    process.exit(1);
+  }
+}
+
+bootstrap();
