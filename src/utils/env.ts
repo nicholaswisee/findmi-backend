@@ -6,7 +6,12 @@ export function loadEnv() {
   const schema = z.object({
     DATABASE_URL: z.url(),
     PORT: z.string().optional(),
-    JWT_SECRET: z.string().optional(),
+    GOOGLE_CLIENT_ID: z.string(),
+    GOOGLE_CLIENT_SECRET: z.string(),
+    GOOGLE_REDIRECT_URI: z.string(),
+    JWT_SECRET: z.string(),
+    COOKIE_DOMAIN: z.string(),
+    FRONTEND_URL: z.string().optional(),
   });
 
   const parsed = schema.safeParse(process.env);
