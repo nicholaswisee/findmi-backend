@@ -147,6 +147,7 @@ export const accountsTable = pgTable('accounts', {
   user_id: integer()
     .notNull()
     .references(() => usersTable.id, { onDelete: 'cascade' }),
+  password: varchar({ length: 255 }),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
   deleted_at: timestamp('deleted_at'),

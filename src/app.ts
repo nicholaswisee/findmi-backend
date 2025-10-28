@@ -4,6 +4,7 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { errorMiddleware } from './middlewares/error.middleware';
+import authRouter from './routes/auth.routes';
 
 export const app = new OpenAPIHono({
   defaultHook: (result, c) => {
@@ -22,7 +23,12 @@ app.use('*', prettyJSON());
 app.use('*', errorMiddleware);
 app.use(
   '*',
-  cors({ origin: '*', allowHeaders: ['Content-Type', 'Authorization'] }),
+  cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:4242',
+    credentials: true,
+    allowMethods: ['GET', 'POST', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+  }),
 );
 
 app.doc('/openapi.json', {
@@ -41,5 +47,7 @@ app.get('/', (c) =>
     message: 'Backend running successfully.',
   }),
 );
+
+app.route('/auth', authRouter);
 
 app.get('/docs', swaggerUI({ url: '/openapi.json' }));
