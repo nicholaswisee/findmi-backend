@@ -7,7 +7,6 @@ import {
   findOrCreateUserFromGoogle,
   issueSessionCookie,
   clearSessionCookie,
-  generateToken,
 } from '../services/auth.service';
 import { db, schema } from '../db/db';
 import { eq } from 'drizzle-orm';
@@ -48,17 +47,16 @@ export async function googleOAuthCallbackController(c: Context) {
 
     const profile = await getGoogleUserInfo(tokens.access_token);
 
-    const { user, payload } = await findOrCreateUserFromGoogle(profile);
+    const { payload } = await findOrCreateUserFromGoogle(profile);
 
     await issueSessionCookie(c, payload);
 
-    // 5) Redirect to frontend
     const frontend = process.env.FRONTEND_URL ?? 'http://localhost:4242';
     return new Response(null, {
       status: 302,
       headers: {
         Location: `${frontend}?login=success`,
-        'Set-Cookie': c.res.headers.get('Set-Cookie')!, // ✅ ensure cookie header included
+        'Set-Cookie': c.res.headers.get('Set-Cookie')!,
       },
     });
   } catch (err) {

@@ -1,11 +1,12 @@
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
-export function successResponse<T>(
+// Narrow the status code at the call site via generics
+export function successResponse<T, S extends ContentfulStatusCode = 200>(
   c: Context,
   data: T,
-  message = 'Success',
-  status: ContentfulStatusCode = 200,
+  message: string = 'Success',
+  status: S = 200 as S,
 ) {
   return c.json(
     {
@@ -17,10 +18,10 @@ export function successResponse<T>(
   );
 }
 
-export function errorResponse(
+export function errorResponse<S extends ContentfulStatusCode = 400>(
   c: Context,
-  message = 'Something went wrong',
-  status: ContentfulStatusCode = 400,
+  message: string = 'Something went wrong',
+  status: S = 400 as S,
   details?: unknown,
 ) {
   return c.json(
@@ -33,23 +34,27 @@ export function errorResponse(
   );
 }
 
-export function paginatedResponse<T>(
+export function paginatedResponse<T, S extends ContentfulStatusCode = 200>(
   c: Context,
   data: T[],
   total: number,
   page: number,
   limit: number,
-  message = 'Success',
+  message: string = 'Success',
+  status: S = 200 as S,
 ) {
-  return c.json({
-    success: true,
-    message,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+  return c.json(
+    {
+      success: true,
+      message,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+      data,
     },
-    data,
-  });
+    status,
+  );
 }
