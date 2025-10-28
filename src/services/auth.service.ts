@@ -2,7 +2,6 @@ import { db, schema } from '../db/db';
 import { eq } from 'drizzle-orm';
 import { sign } from 'hono/jwt';
 import type { JWTPayload } from '../types/auth';
-import type { Context } from 'hono';
 import { randomBytes } from 'crypto';
 
 const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
@@ -20,19 +19,15 @@ const CLIENT_ID = required('GOOGLE_CLIENT_ID');
 const CLIENT_SECRET = required('GOOGLE_CLIENT_SECRET');
 const REDIRECT_URI = required('GOOGLE_REDIRECT_URI');
 
-export function buildGoogleAuthUrl(c: any) {
+export function buildGoogleAuthUrl() {
   const state = randomBytes(16).toString('hex');
-  c.header(
-    'Set-Cookie',
-    createCookie('google_oauth_state', state, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 5, // 5 minutes
-      path: '/',
-      domain: undefined,
-    }),
-  );
+  const cookie = createCookie('google_oauth_state', state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Lax',
+    maxAge: 60 * 5,
+    path: '/',
+  });
 
   const url = new URL(GOOGLE_AUTH_ENDPOINT);
   url.searchParams.set('client_id', CLIENT_ID);
@@ -42,7 +37,7 @@ export function buildGoogleAuthUrl(c: any) {
   url.searchParams.set('scope', 'openid email profile');
   url.searchParams.set('state', state);
   url.searchParams.set('prompt', 'select_account');
-  return url;
+  return { url, cookie };
 }
 
 export async function exchangeCodeForTokens(code: string) {
@@ -163,34 +158,25 @@ export async function generateToken(payload: JWTPayload): Promise<string> {
   return await sign(payload, JWT_SECRET, 'HS256');
 }
 
-export async function issueSessionCookie(c: Context, payload: JWTPayload) {
+export async function createSessionCookie(payload: JWTPayload) {
   const token = await sign(payload, process.env.JWT_SECRET!, 'HS256');
-  // HttpOnly session cookie
-  c.header(
-    'Set-Cookie',
-    createCookie('ami_session', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production' ? true : false,
-      sameSite: 'lax',
-      path: '/',
-      domain: process.env.COOKIE_DOMAIN || undefined,
-      maxAge: 60 * 60 * 24 * 7, // 7 days
-    }),
-  );
+  return createCookie('ami_session', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'Lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 7,
+  });
 }
 
-export function clearSessionCookie(c: any) {
-  c.header(
-    'Set-Cookie',
-    createCookie('ami_session', '', {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 0,
-      path: '/',
-      domain: process.env.COOKIE_DOMAIN || undefined,
-    }),
-  );
+export function clearSessionCookieHeader() {
+  return createCookie('ami_session', '', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'Lax',
+    maxAge: 0,
+    path: '/',
+  });
 }
 
 function createCookie(
@@ -199,7 +185,7 @@ function createCookie(
   opts: {
     httpOnly?: boolean;
     secure?: boolean;
-    sameSite?: 'lax' | 'strict' | 'none';
+    sameSite?: 'Lax' | 'Strict' | 'None';
     maxAge?: number;
     path?: string;
     domain?: string;

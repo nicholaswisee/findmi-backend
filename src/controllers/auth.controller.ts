@@ -5,8 +5,8 @@ import {
   exchangeCodeForTokens,
   getGoogleUserInfo,
   findOrCreateUserFromGoogle,
-  issueSessionCookie,
-  clearSessionCookie,
+  createSessionCookie,
+  clearSessionCookieHeader,
 } from '../services/auth.service';
 import { db, schema } from '../db/db';
 import { eq } from 'drizzle-orm';
@@ -14,8 +14,10 @@ import bcrypt from 'bcryptjs';
 
 export async function beginGoogleOAuthController(c: Context) {
   try {
-    const url = buildGoogleAuthUrl(c);
-    return c.redirect(url.toString(), 302);
+    const { url, cookie } = buildGoogleAuthUrl();
+    const res = c.redirect(url.toString(), 302);
+    res.headers.append('Set-Cookie', cookie);
+    return res;
   } catch (err) {
     return errorResponse(c, (err as Error).message, 500);
   }
@@ -49,16 +51,12 @@ export async function googleOAuthCallbackController(c: Context) {
 
     const { payload } = await findOrCreateUserFromGoogle(profile);
 
-    await issueSessionCookie(c, payload);
+    const cookie = await createSessionCookie(payload);
 
     const frontend = process.env.FRONTEND_URL ?? 'http://localhost:4242';
-    return new Response(null, {
-      status: 302,
-      headers: {
-        Location: `${frontend}?login=success`,
-        'Set-Cookie': c.res.headers.get('Set-Cookie')!,
-      },
-    });
+    const res = c.redirect(`${frontend}?login=success`, 302);
+    res.headers.append('Set-Cookie', cookie);
+    return res;
   } catch (err) {
     return errorResponse(c, (err as Error).message, 401);
   }
@@ -66,45 +64,48 @@ export async function googleOAuthCallbackController(c: Context) {
 
 export async function loginController(c: Context) {
   try {
-    const body = await c.req.json<{ email: string; password: string }>();
-    const { email, password } = body;
+    const body = await c.req.json<{ nim: string; password: string }>();
+    const { nim, password } = body;
 
-    if (!email || !password)
-      return errorResponse(c, 'Email and password are required', 400);
+    if (!nim || !password)
+      return errorResponse(c, 'NIM and password are required', 400);
+
+    const users = await db
+      .select()
+      .from(schema.usersTable)
+      .where(eq(schema.usersTable.nim, nim));
+
+    if (users.length === 0) {
+      return errorResponse(c, 'Invalid NIM or password', 401);
+    }
+
+    const user = users[0];
 
     const accounts = await db
       .select()
       .from(schema.accountsTable)
-      .where(eq(schema.accountsTable.email, email));
+      .where(eq(schema.accountsTable.user_id, user.id));
 
-    if (accounts.length === 0)
-      return errorResponse(c, 'Invalid email or password', 401);
+    const localAccount = accounts.find((a) => a.password);
 
-    const account = accounts[0];
-
-    const [user] = await db
-      .select()
-      .from(schema.usersTable)
-      .where(eq(schema.usersTable.id, account.user_id));
-
-    if (!account.password) {
+    if (!localAccount) {
       return errorResponse(c, 'This account uses Google login', 400);
     }
 
-    const match = await bcrypt.compare(password, account.password);
-
-    if (!match) return errorResponse(c, 'Invalid email or password', 401);
+    const match = await bcrypt.compare(password, localAccount.password!);
+    if (!match) return errorResponse(c, 'Invalid NIM or password', 401);
 
     const payload = {
       userId: user.id,
-      accountId: account.id,
-      email: account.email,
+      accountId: localAccount.id,
+      email: localAccount.email,
       role: user.role,
     };
 
-    issueSessionCookie(c, payload);
-
-    return successResponse(c, { user }, 'Login successful');
+    const cookie = await createSessionCookie(payload);
+    const res = successResponse(c, { user }, 'Login successful');
+    res.headers.append('Set-Cookie', cookie);
+    return res;
   } catch (err) {
     console.error('Login error:', err);
     return errorResponse(c, (err as Error).message, 500);
@@ -123,8 +124,10 @@ export async function verifyController(c: Context) {
 }
 
 export async function logoutController(c: Context) {
-  clearSessionCookie(c);
-  return successResponse(c, { ok: true }, 'Logged out');
+  const cookie = clearSessionCookieHeader();
+  const res = successResponse(c, { ok: true }, 'Logged out');
+  res.headers.append('Set-Cookie', cookie);
+  return res;
 }
 
 export async function meController(c: Context) {

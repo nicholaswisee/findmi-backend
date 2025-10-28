@@ -4,7 +4,7 @@ import { userSchema, userRoleEnum } from './user';
 
 export const loginBodySchema = z
   .object({
-    email: z.string().email().openapi({ example: 'user@example.com' }),
+    nim: z.string().min(1).openapi({ example: '13524000' }),
     password: z.string().min(1).openapi({ example: 'strong-password' }),
   })
   .openapi('LoginBody');
