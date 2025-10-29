@@ -5,6 +5,7 @@ import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
 import { errorMiddleware } from './middlewares/error.middleware';
 import authRouter from './routes/auth.routes';
+import { rateLimiter } from 'hono-rate-limiter';
 
 export const app = new OpenAPIHono({
   defaultHook: (result, c) => {
@@ -18,6 +19,18 @@ export const app = new OpenAPIHono({
   },
 });
 
+app.use(
+  '*',
+  rateLimiter({
+    windowMs: 60000,
+    limit: 60,
+    keyGenerator: (c) =>
+      c.req.header('x-forwarded-for') ||
+      c.req.header('cf-connecting-ip') ||
+      c.req.header('x-real-ip') ||
+      'unknown',
+  }),
+);
 app.use('*', logger());
 app.use('*', prettyJSON());
 app.use('*', errorMiddleware);
