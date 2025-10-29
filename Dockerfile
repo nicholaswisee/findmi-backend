@@ -10,6 +10,7 @@ RUN bun install --frozen-lockfile
 COPY . .
 
 # Build TypeScript → dist  (target Bun runtime)
+RUN bunx drizzle-kit generate
 RUN bun build src/index.ts --outdir dist --target bun
 
 # ========= Runtime stage =========
@@ -29,4 +30,4 @@ EXPOSE 6969
 
 # Run built server
 # CMD ["bun", "run", "dist/index.js"]
-CMD bunx drizzle-kit push || true && bun run dist/index.js
+CMD ["bash", "-c", "bunx drizzle-kit push || true && bun run dist/index.js"]
