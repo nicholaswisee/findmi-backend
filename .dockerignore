@@ -38,5 +38,4 @@ tmp/
 cache/
 coverage/
 build/
-drizzle/
 migrations/
