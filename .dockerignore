@@ -1,31 +1,3 @@
-# === Node/Bun dependencies ===
-node_modules
-bun.lockb
-bunfig.toml
-npm-debug.log
-yarn-error.log
-
-# === Local environment & secrets ===
-.env
-.env.local
-.env.development
-.env.test
-.env.*.backup
-
-# === Development / Editor files ===
-.vscode
-.idea
-.DS_Store
-*.swp
-*.swo
-*.log
-
-# === Git & CI/CD ===
-.git
-.gitignore
-.github
-.gitlab-ci.yml
-
 # === Docker files (tidak perlu dikopi ke container runtime) ===
 Dockerfile
 docker-compose.yml
@@ -38,4 +10,7 @@ tmp/
 cache/
 coverage/
 build/
-migrations/
+
+# === Include rules ===
+!.gitignore
+!.dockerignore
