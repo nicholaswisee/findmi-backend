@@ -18,6 +18,7 @@ WORKDIR /app
 
 # Copy only what's needed to run + migrations
 COPY --from=build /app/dist ./dist
+COPY --from=build /app/src ./src
 COPY --from=build /app/drizzle ./drizzle
 COPY --from=build /app/drizzle.config.* ./
 COPY package.json bun.lock ./
