@@ -10,7 +10,6 @@ RUN bun install --frozen-lockfile
 COPY . .
 
 # Build TypeScript → dist  (target Bun runtime)
-RUN bunx drizzle-kit generate
 RUN bun build src/index.ts --outdir dist --target bun
 
 # ========= Runtime stage =========
@@ -20,6 +19,7 @@ WORKDIR /app
 # Copy only what’s needed to run
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/drizzle ./drizzle
+COPY --from=build /app/drizzle.config.json ./drizzle.config.json
 COPY package.json bun.lock ./
 
 ENV NODE_ENV=production
