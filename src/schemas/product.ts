@@ -8,6 +8,7 @@ export const productSchema = z.object({
   price: z.string().openapi({ example: '99000.00' }),
   category: userDepartmentEnum,
   image_url: z.url(),
+  remaining_stock: z.number().int(),
 });
 
 export type Product = z.infer<typeof productSchema>;
