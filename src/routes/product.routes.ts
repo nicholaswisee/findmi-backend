@@ -24,6 +24,7 @@ import {
   searchQuerySchema,
 } from '../schemas/common/queries';
 import { baseErrorSchema } from '../schemas/common/response';
+import { authMiddleware } from '../middlewares/auth.middleware';
 
 const errorSchema = baseErrorSchema.openapi('ErrorResponse');
 

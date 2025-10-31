@@ -8,6 +8,7 @@ import authRouter from './routes/auth.routes';
 import { rateLimiter } from 'hono-rate-limiter';
 import productRouter from './routes/product.routes';
 import bundleRouter from './routes/bundle.routes';
+import { authMiddleware } from './middlewares/auth.middleware';
 
 export const app = new OpenAPIHono({
   defaultHook: (result, c) => {
@@ -43,6 +44,14 @@ app.use(
     credentials: true,
   }),
 );
+
+// For unauthorized users, only allow GET requests
+app.use('*', async (c, next) => {
+  if (c.req.method === 'GET') {
+    return next();
+  }
+  return authMiddleware(c, next);
+});
 
 app.doc('/openapi.json', {
   openapi: '3.1.0',
