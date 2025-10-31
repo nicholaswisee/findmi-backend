@@ -24,6 +24,14 @@ export const createErrorResponse = (detailsSchema?: z.ZodTypeAny) =>
     detailsSchema ? { details: detailsSchema.optional() } : {},
   );
 
+export const deleteResultSchema = z
+  .object({
+    success: z.boolean().openapi({ example: true }),
+    message: z.string().openapi({ example: 'Resource deleted.' }),
+    deletedCount: z.number().optional().openapi({ example: 1 }),
+  })
+  .openapi('DeleteResult');
+
 export const createPaginatedResponse = <T extends z.ZodTypeAny>(
   itemSchema: T,
 ) =>

@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { createSuccessResponse } from './common/response';
+import { createSuccessResponse, deleteResultSchema } from './common/response';
 
 export const productSchema = z
   .object({
@@ -56,11 +56,7 @@ export const updateProductSuccessSchema = createSuccessResponse(
 ).openapi('UpdateProductSuccess');
 
 export const deleteProductSuccessSchema = createSuccessResponse(
-  z.object({
-    success: z.boolean().openapi({ example: true }),
-    message: z.string().openapi({ example: 'Produk berhasil dihapus.' }),
-    deletedCount: z.number().optional().openapi({ example: 1 }),
-  }),
+  deleteResultSchema,
 ).openapi('DeleteProductSuccess');
 
 export const updateStockSuccessSchema = z.object({

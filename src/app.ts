@@ -7,6 +7,7 @@ import { errorMiddleware } from './middlewares/error.middleware';
 import authRouter from './routes/auth.routes';
 import { rateLimiter } from 'hono-rate-limiter';
 import productRouter from './routes/product.routes';
+import bundleRouter from './routes/bundle.routes';
 
 export const app = new OpenAPIHono({
   defaultHook: (result, c) => {
@@ -62,6 +63,7 @@ app.get('/', (c) =>
 
 app.route('/auth', authRouter);
 app.route('/product', productRouter);
+app.route('/bundle', bundleRouter);
 
 app.get(
   '/docs',
