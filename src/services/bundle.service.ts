@@ -172,7 +172,7 @@ export async function deleteBundle(id: number) {
 }
 
 // TO-DO: Fetch all bundles in specific category
-export async function getProductsByCategory(category: UserDepartmentEnum) {
+export async function getBundlesByCategory(category: UserDepartmentEnum) {
   const bundles = await db
     .select()
     .from(schema.bundlesTable)
@@ -203,4 +203,34 @@ export async function searchBundles(keyword: string) {
     .orderBy(schema.bundlesTable.name);
 
   return bundles;
+}
+
+export async function updateBundleItems(
+  bundleId: number,
+  items: BundleItemsJSON,
+) {
+  const [existingBundle] = await db
+    .select()
+    .from(schema.bundlesTable)
+    .where(eq(schema.bundlesTable.id, bundleId));
+  if (!existingBundle) {
+    throw new Error('Produk tidak ditemukan.');
+  }
+  if (items.length < 1) {
+    throw new Error('Produk dalam bundle tidak mencukupi.');
+  }
+
+  const [updatedBundle] = await db
+    .update(schema.bundlesTable)
+    .set({ bundle_items: items })
+    .where(eq(schema.bundlesTable.id, bundleId))
+    .returning({
+      id: schema.bundlesTable.id,
+      name: schema.bundlesTable.name,
+      bundle_items: schema.bundlesTable.bundle_items,
+    });
+
+  if (!updatedBundle) throw new Error('Gagal memperbarui produk dalam bundle.');
+
+  return updatedBundle;
 }

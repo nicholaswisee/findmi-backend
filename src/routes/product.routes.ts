@@ -19,26 +19,31 @@ import {
   deleteProductSuccessSchema,
   updateStockSuccessSchema,
 } from '../schemas/product';
+import {
+  listingQuerySchema,
+  searchQuerySchema,
+} from '../schemas/common/queries';
 import { baseErrorSchema } from '../schemas/common/response';
 
 const errorSchema = baseErrorSchema.openapi('ErrorResponse');
 
 export const productRouter = new OpenAPIHono();
 
-productRouter.openapi(
-  createRoute({
+type ProductHandler = Parameters<typeof productRouter.openapi>[1];
+
+const registerProductRoute = (
+  config: Parameters<typeof createRoute>[0],
+  handler: ProductHandler,
+) => productRouter.openapi(createRoute(config), handler);
+
+registerProductRoute(
+  {
     method: 'get',
     path: '/',
     summary: 'Get all products',
     tags: ['Product'],
     request: {
-      query: z.object({
-        category: z.string().optional(),
-        search: z.string().optional(),
-        sortBy: z.enum(['latest', 'price_asc', 'price_desc']).optional(),
-        limit: z.coerce.number().min(1).max(100).optional(),
-        offset: z.coerce.number().min(0).optional(),
-      }),
+      query: listingQuerySchema,
     },
     responses: {
       200: {
@@ -52,11 +57,70 @@ productRouter.openapi(
         content: { 'application/json': { schema: errorSchema } },
       },
     },
-  }),
+  },
   getAllProductsController,
 );
-productRouter.openapi(
-  createRoute({
+
+registerProductRoute(
+  {
+    method: 'get',
+    path: '/search',
+    summary: 'Search products',
+    tags: ['Product'],
+    request: { query: searchQuerySchema },
+    responses: {
+      200: {
+        description: 'OK',
+        content: {
+          'application/json': { schema: getAllProductsSuccessSchema },
+        },
+      },
+      400: {
+        description: 'Bad request',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      500: {
+        description: 'Server error',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+    },
+  },
+  searchProductsController,
+);
+
+registerProductRoute(
+  {
+    method: 'get',
+    path: '/category/{category}',
+    summary: 'Get products by category',
+    tags: ['Product'],
+    request: { params: z.object({ category: z.string() }) },
+    responses: {
+      200: {
+        description: 'OK',
+        content: {
+          'application/json': { schema: getAllProductsSuccessSchema },
+        },
+      },
+      400: {
+        description: 'Bad request',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      404: {
+        description: 'Not found',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      500: {
+        description: 'Server error',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+    },
+  },
+  getProductsByCategoryController,
+);
+
+registerProductRoute(
+  {
     method: 'get',
     path: '/{id}',
     summary: 'Get product by ID',
@@ -82,11 +146,12 @@ productRouter.openapi(
         content: { 'application/json': { schema: errorSchema } },
       },
     },
-  }),
+  },
   getProductByIdController,
 );
-productRouter.openapi(
-  createRoute({
+
+registerProductRoute(
+  {
     method: 'post',
     path: '/',
     summary: 'Create product',
@@ -110,11 +175,12 @@ productRouter.openapi(
         content: { 'application/json': { schema: errorSchema } },
       },
     },
-  }),
+  },
   createProductController,
 );
-productRouter.openapi(
-  createRoute({
+
+registerProductRoute(
+  {
     method: 'put',
     path: '/{id}',
     summary: 'Update product',
@@ -143,98 +209,12 @@ productRouter.openapi(
         content: { 'application/json': { schema: errorSchema } },
       },
     },
-  }),
+  },
   updateProductController,
 );
-productRouter.openapi(
-  createRoute({
-    method: 'delete',
-    path: '/{id}',
-    summary: 'Delete product',
-    tags: ['Product'],
-    request: {
-      params: z.object({ id: z.coerce.number().int().positive() }),
-    },
-    responses: {
-      200: {
-        description: 'Deleted',
-        content: { 'application/json': { schema: deleteProductSuccessSchema } },
-      },
-      400: {
-        description: 'Bad request',
-        content: { 'application/json': { schema: errorSchema } },
-      },
-      404: {
-        description: 'Not found',
-        content: { 'application/json': { schema: errorSchema } },
-      },
-      500: {
-        description: 'Server error',
-        content: { 'application/json': { schema: errorSchema } },
-      },
-    },
-  }),
-  deleteProductController,
-);
-productRouter.openapi(
-  createRoute({
-    method: 'get',
-    path: '/category/{category}',
-    summary: 'Get products by category',
-    tags: ['Product'],
-    request: { params: z.object({ category: z.string() }) },
-    responses: {
-      200: {
-        description: 'OK',
-        content: {
-          'application/json': { schema: getAllProductsSuccessSchema },
-        },
-      },
-      400: {
-        description: 'Bad request',
-        content: { 'application/json': { schema: errorSchema } },
-      },
-      404: {
-        description: 'Not found',
-        content: { 'application/json': { schema: errorSchema } },
-      },
-      500: {
-        description: 'Server error',
-        content: { 'application/json': { schema: errorSchema } },
-      },
-    },
-  }),
-  getProductsByCategoryController,
-);
-productRouter.openapi(
-  createRoute({
-    method: 'get',
-    path: '/search',
-    summary: 'Search products',
-    tags: ['Product'],
-    request: { query: z.object({ keyword: z.string().min(1) }) },
-    responses: {
-      200: {
-        description: 'OK',
-        content: {
-          'application/json': { schema: getAllProductsSuccessSchema },
-        },
-      },
-      400: {
-        description: 'Bad request',
-        content: { 'application/json': { schema: errorSchema } },
-      },
-      500: {
-        description: 'Server error',
-        content: { 'application/json': { schema: errorSchema } },
-      },
-    },
-  }),
-  searchProductsController,
-);
 
-productRouter.openapi(
-  createRoute({
+registerProductRoute(
+  {
     method: 'patch',
     path: '/{id}/stock',
     summary: 'Update product stock',
@@ -267,8 +247,39 @@ productRouter.openapi(
         content: { 'application/json': { schema: errorSchema } },
       },
     },
-  }),
+  },
   updateProductStockController,
+);
+
+registerProductRoute(
+  {
+    method: 'delete',
+    path: '/{id}',
+    summary: 'Delete product',
+    tags: ['Product'],
+    request: {
+      params: z.object({ id: z.coerce.number().int().positive() }),
+    },
+    responses: {
+      200: {
+        description: 'Deleted',
+        content: { 'application/json': { schema: deleteProductSuccessSchema } },
+      },
+      400: {
+        description: 'Bad request',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      404: {
+        description: 'Not found',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      500: {
+        description: 'Server error',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+    },
+  },
+  deleteProductController,
 );
 
 export default productRouter;
