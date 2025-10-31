@@ -46,7 +46,7 @@ app.use(
 app.doc('/openapi.json', {
   openapi: '3.1.0',
   info: {
-    title: 'FindMI 2026 API Documentation',
+    title: 'FindMI API Documentation',
     version: '1.0.0',
   },
 });
@@ -63,4 +63,7 @@ app.get('/', (c) =>
 app.route('/auth', authRouter);
 app.route('/product', productRouter);
 
-app.get('/docs', swaggerUI({ url: '/openapi.json' }));
+app.get(
+  '/docs',
+  swaggerUI({ url: '/openapi.json', title: 'FindMI API Documentation' }),
+);

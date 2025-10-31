@@ -1,12 +1,11 @@
 import { and, asc, desc, eq, ilike, or } from 'drizzle-orm';
 import { db, schema } from '../db/db';
+import type { UserDepartmentEnum } from '../schemas';
 
 // TO-DO: Fetch all products (with optional filters)
 // Import the enum type for category if available, or extract it from your schema
 
 // Import the enum type for category from your schema
-type UserDepartmentEnum =
-  (typeof schema.productsTable.$inferSelect)['category'];
 export async function getAllProducts({
   category,
   search,
@@ -115,7 +114,6 @@ export async function updateProduct(
   id: number,
   data: Partial<{
     name: string;
-    slug: string;
     price: number;
     description?: string;
     stock: number;
