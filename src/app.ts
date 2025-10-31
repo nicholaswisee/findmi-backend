@@ -6,6 +6,7 @@ import { prettyJSON } from 'hono/pretty-json';
 import { errorMiddleware } from './middlewares/error.middleware';
 import authRouter from './routes/auth.routes';
 import { rateLimiter } from 'hono-rate-limiter';
+import productRouter from './routes/product.routes';
 
 export const app = new OpenAPIHono({
   defaultHook: (result, c) => {
@@ -60,5 +61,6 @@ app.get('/', (c) =>
 );
 
 app.route('/auth', authRouter);
+app.route('/product', productRouter);
 
 app.get('/docs', swaggerUI({ url: '/openapi.json' }));

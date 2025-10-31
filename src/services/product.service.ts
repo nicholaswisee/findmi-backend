@@ -74,14 +74,14 @@ export async function createProduct({
   description,
   stock,
   category,
-  imageUrl,
+  image_url,
 }: {
   name: string;
   price: number;
   description?: string;
   stock: number;
   category?: UserDepartmentEnum;
-  imageUrl?: string;
+  image_url?: string;
 }) {
   const [product] = await db
     .insert(schema.productsTable)
@@ -90,7 +90,7 @@ export async function createProduct({
       price,
       category: (category || 'none') as UserDepartmentEnum,
       description: description || '',
-      image_url: imageUrl || '',
+      image_url: image_url || '',
       remaining_stock: stock,
     })
     .returning({
@@ -99,8 +99,8 @@ export async function createProduct({
       price: schema.productsTable.price,
       category: schema.productsTable.category,
       description: schema.productsTable.description,
-      imageUrl: schema.productsTable.image_url,
-      remainingStock: schema.productsTable.remaining_stock,
+      image_url: schema.productsTable.image_url,
+      remaining_stock: schema.productsTable.remaining_stock,
     });
 
   if (!product) {
@@ -120,7 +120,7 @@ export async function updateProduct(
     description?: string;
     stock: number;
     category?: UserDepartmentEnum;
-    imageUrl?: string;
+    image_url?: string;
   }>,
 ) {
   const [existingProduct] = await db
@@ -138,7 +138,7 @@ export async function updateProduct(
   if (data.description !== undefined) updateData.description = data.description;
   if (data.stock !== undefined) updateData.remaining_stock = data.stock;
   if (data.category !== undefined) updateData.category = data.category;
-  if (data.imageUrl !== undefined) updateData.image_url = data.imageUrl;
+  if (data.image_url !== undefined) updateData.image_url = data.image_url;
 
   const [updatedProduct] = await db
     .update(schema.productsTable)
@@ -150,8 +150,8 @@ export async function updateProduct(
       price: schema.productsTable.price,
       category: schema.productsTable.category,
       description: schema.productsTable.description,
-      imageUrl: schema.productsTable.image_url,
-      remainingStock: schema.productsTable.remaining_stock,
+      image_url: schema.productsTable.image_url,
+      remaining_stock: schema.productsTable.remaining_stock,
     });
 
   if (!updatedProduct) {
@@ -243,7 +243,7 @@ export async function updateProductStock(productId: number, quantity: number) {
     .returning({
       id: schema.productsTable.id,
       name: schema.productsTable.name,
-      remainingStock: schema.productsTable.remaining_stock,
+      remaining_stock: schema.productsTable.remaining_stock,
     });
 
   if (!updatedProduct) {
