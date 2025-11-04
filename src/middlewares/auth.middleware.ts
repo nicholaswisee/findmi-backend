@@ -10,7 +10,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   if (!token) return errorResponse(c, 'Unauthorized', 401);
 
   try {
-    const payload = await verify(token, JWT_SECRET);
+    const payload = await verify(token, JWT_SECRET, 'HS256');
     c.set('user', payload);
     await next();
   } catch {

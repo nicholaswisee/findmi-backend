@@ -24,18 +24,18 @@ export const app = new OpenAPIHono({
   },
 });
 
-app.use(
-  '*',
-  rateLimiter({
-    windowMs: 60000,
-    limit: 200,
-    keyGenerator: (c) =>
-      c.req.header('x-forwarded-for') ||
-      c.req.header('cf-connecting-ip') ||
-      c.req.header('x-real-ip') ||
-      'unknown',
-  }),
-);
+// app.use(
+//   '*',
+//   rateLimiter({
+//     windowMs: 60000,
+//     limit: 200,
+//     keyGenerator: (c) =>
+//       c.req.header('x-forwarded-for') ||
+//       c.req.header('cf-connecting-ip') ||
+//       c.req.header('x-real-ip') ||
+//       'unknown',
+//   }),
+// );
 app.use('*', logger());
 app.use('*', prettyJSON());
 app.use('*', errorMiddleware);
@@ -81,18 +81,18 @@ app.get('/', (c) =>
   }),
 );
 
-app.use(
-  '/auth/*',
-  rateLimiter({
-    windowMs: 60000,
-    limit: 20,
-    keyGenerator: (c) =>
-      c.req.header('x-forwarded-for') ||
-      c.req.header('cf-connecting-ip') ||
-      c.req.header('x-real-ip') ||
-      'unknown',
-  }),
-);
+// app.use(
+//   '/auth/*',
+//   rateLimiter({
+//     windowMs: 60000,
+//     limit: 20,
+//     keyGenerator: (c) =>
+//       c.req.header('x-forwarded-for') ||
+//       c.req.header('cf-connecting-ip') ||
+//       c.req.header('x-real-ip') ||
+//       'unknown',
+//   }),
+// );
 
 app.route('/auth', authRouter);
 app.route('/product', productRouter);
