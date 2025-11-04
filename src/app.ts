@@ -10,6 +10,7 @@ import authRouter from './routes/auth.routes';
 import productRouter from './routes/product.routes';
 import bundleRouter from './routes/bundle.routes';
 import cartRouter from './routes/cart.routes';
+import orderRouter from './routes/order.routes';
 
 export const app = new OpenAPIHono({
   defaultHook: (result, c) => {
@@ -54,7 +55,8 @@ app.use('*', async (c, next) => {
 
   if (
     c.req.path.toLowerCase() === '/auth' ||
-    c.req.path.toLowerCase().startsWith('/auth/')
+    c.req.path.toLowerCase().startsWith('/auth/') ||
+    c.req.path.toLowerCase().startsWith('/order/midtrans/notifications')
   ) {
     return next();
   }
@@ -96,6 +98,7 @@ app.route('/auth', authRouter);
 app.route('/product', productRouter);
 app.route('/bundle', bundleRouter);
 app.route('/cart', cartRouter);
+app.route('/order', orderRouter);
 
 app.get(
   '/docs',
