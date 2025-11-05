@@ -28,6 +28,8 @@ export const userDepartmentEnum = z
     example: 'IT',
   });
 
+export type UserDepartmentEnum = z.infer<typeof userDepartmentEnum>;
+
 export const userDivisionEnum = z
   .enum([
     'Sekretaris',

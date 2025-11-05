@@ -31,62 +31,38 @@ export const userDepartmentEnum = pgEnum('department_enum', [
   'Panitia',
   'none',
 ]);
-// TODO: Fill Division Enum: MSDM, PSDM, ...
+
 export const userDivisionEnum = pgEnum('division_enum', [
-  // Sekbenbid
   'Sekretaris',
   'Bendahara',
   'Sekretaris & Bendahara',
-
-  // From Sekretariat Jendral
   'Perizinan',
-
-  // From Manajemen Personalia
   'MSDM',
   'PSDM',
-
-  // From Perangkat Lapangan Utama (under Komandan Lapangan)
   'Pengawasan',
   'Eksekusi',
-
-  // From ITB Day
   'Lapangan',
   'Tour',
   'Event Organizer',
   'Exhibition',
   'Pre-Event',
-
-  // From Relasi
   'Intrakampus',
   'Ekstrakampus',
-
-  // From Kreatif
   'Grafis',
   'Dokumentasi',
   'Publikasi',
   'Musik',
   'Properti',
-
-  // From Diseminasi
   'Diseminasi Umum',
   'Diseminasi Khusus',
-
-  // From Paguyuban Membangun
   'Roadshow Paguyuban',
   'Forum Paguyuban',
-
-  // From Fundraising
   'Sponsorship',
   'Entrepreneurship',
-
-  // From Operasional
   'Logistik',
   'Produksi',
   'Akomodasi dan Transportasi',
-
-  // From IT
   'IT',
-
   'Panitia',
   'none',
 ]);
@@ -114,68 +90,70 @@ export const orderPaymentMethodEnum = pgEnum('payment_method_enum', [
   'Manual',
   'Xendit',
   'Midtrans',
-  'GoPay', // edit later
+  'GoPay',
 ]);
 
 export const usersTable = pgTable('users', {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull(),
-  department: userDepartmentEnum('department').notNull().default('none'), // Bidang
-  division: userDivisionEnum('division').notNull().default('none'), // Divisi
-  rank: userRankEnum('rank').notNull().default('none'), // Ring 1, 2, atau staff
-  nim: varchar({ length: 255 }).notNull().default(''),
-  no_wa: varchar({ length: 255 }).notNull().default(''),
-  line_id: varchar({ length: 255 }).notNull().default(''),
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar('name', { length: 255 }).notNull(),
+  department: userDepartmentEnum('department').notNull().default('none'),
+  division: userDivisionEnum('division').notNull().default('none'),
+  rank: userRankEnum('rank').notNull().default('none'),
+  nim: varchar('nim', { length: 255 }).notNull().default(''),
+  no_wa: varchar('no_wa', { length: 255 }).notNull().default(''),
+  line_id: varchar('line_id', { length: 255 }).notNull().default(''),
   role: userRoleEnum('role').notNull().default('user'),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
   deleted_at: timestamp('deleted_at'),
 });
 
-export type BundleItem = {
-  product_id: number;
-  amount: number;
-};
-
-export type BundleItemsJSON = BundleItem[];
-
 export const accountsTable = pgTable('accounts', {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  provider: varchar({ length: 255 }).notNull(),
-  provider_id: varchar({ length: 255 }).notNull().unique(),
-  email: varchar({ length: 255 }).notNull().unique(),
-  user_id: integer()
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  provider: varchar('provider', { length: 255 }).notNull(),
+  provider_id: varchar('provider_id', { length: 255 }).notNull().unique(),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  user_id: integer('user_id')
     .notNull()
     .references(() => usersTable.id, { onDelete: 'cascade' }),
-  password: varchar({ length: 255 }),
+  password: varchar('password', { length: 255 }),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
   deleted_at: timestamp('deleted_at'),
 });
 
 export const productsTable = pgTable('products', {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull().default(''),
-  description: text().notNull().default(''),
-  price: numeric().notNull().default('0.00'),
-  category: userDepartmentEnum('category').notNull().default('none'), // None = publik, Panitia / Specified Department = Panitia
-  image_url: varchar({ length: 512 }).notNull().default(''),
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar('name', { length: 255 }).notNull().default(''),
+  description: text('description').notNull().default(''),
+  price: numeric('price', { mode: 'number' }).notNull().default(0.0),
+  category: userDepartmentEnum('category').notNull().default('none'),
+  image_url: varchar('image_url', { length: 512 }).notNull().default(''),
+  remaining_stock: numeric('remaining_stock', { mode: 'number' })
+    .notNull()
+    .default(0),
 });
 
+export type BundleItem = {
+  product_id: number;
+  amount: number;
+};
+export type BundleItemsJSON = BundleItem[];
+
 export const bundlesTable = pgTable('bundles', {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull(),
-  description: text().notNull().default(''),
-  bundle_items: jsonb('bundle_items').notNull(), // JSONB for BundleItems, [{}, ...]
-  image_url: varchar({ length: 512 }).notNull().default(''),
-  price: numeric().notNull().default('0.00'),
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description').notNull().default(''),
+  bundle_items: jsonb('bundle_items').notNull(),
+  image_url: varchar('image_url', { length: 512 }).notNull().default(''),
+  price: numeric('price', { mode: 'number' }).notNull().default(0.0),
   category: userDepartmentEnum('category').notNull().default('none'),
   is_hidden: boolean('is_hidden').notNull().default(false),
 });
 
 export const cartsTable = pgTable('carts', {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  user_id: integer()
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  user_id: integer('user_id')
     .notNull()
     .references(() => usersTable.id, { onDelete: 'cascade' }),
   created_at: timestamp('created_at').defaultNow().notNull(),
@@ -186,17 +164,17 @@ export const cartsTable = pgTable('carts', {
 export const cartItemsTable = pgTable(
   'cart_items',
   {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    cart_id: integer()
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    cart_id: integer('cart_id')
       .notNull()
       .references(() => cartsTable.id, { onDelete: 'cascade' }),
-    product_id: integer().references(() => productsTable.id, {
+    product_id: integer('product_id').references(() => productsTable.id, {
       onDelete: 'cascade',
     }),
-    bundle_id: integer().references(() => bundlesTable.id, {
+    bundle_id: integer('bundle_id').references(() => bundlesTable.id, {
       onDelete: 'cascade',
     }),
-    quantity: integer().notNull().default(1),
+    quantity: integer('quantity').notNull().default(1),
   },
   (table) => [
     check(
@@ -211,14 +189,20 @@ export const cartItemsTable = pgTable(
 );
 
 export const ordersTable = pgTable('orders', {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  user_id: integer()
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  user_id: integer('user_id')
     .notNull()
     .references(() => usersTable.id, { onDelete: 'cascade' }),
-  total_amount: numeric().notNull().default('0.00'),
-  payment_status: varchar({ length: 50 }).notNull().default('pending'),
-  payment_method: varchar({ length: 50 }).notNull().default('manual'),
-  transaction_id: varchar({ length: 255 }), // gateway reference, if any
+  total_amount: numeric('total_amount', { mode: 'number' })
+    .notNull()
+    .default(0.0),
+  payment_status: orderPaymentStatusEnum('payment_status')
+    .notNull()
+    .default('Pending'),
+  payment_method: orderPaymentMethodEnum('payment_method')
+    .notNull()
+    .default('Manual'),
+  transaction_id: varchar('transaction_id', { length: 255 }),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -226,18 +210,20 @@ export const ordersTable = pgTable('orders', {
 export const orderItemsTable = pgTable(
   'order_items',
   {
-    id: integer().primaryKey().generatedAlwaysAsIdentity(),
-    order_id: integer()
+    id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+    order_id: integer('order_id')
       .notNull()
       .references(() => ordersTable.id, { onDelete: 'cascade' }),
-    product_id: integer().references(() => productsTable.id, {
+    product_id: integer('product_id').references(() => productsTable.id, {
       onDelete: 'cascade',
     }),
-    bundle_id: integer().references(() => bundlesTable.id, {
+    bundle_id: integer('bundle_id').references(() => bundlesTable.id, {
       onDelete: 'cascade',
     }),
-    quantity: integer().notNull().default(1),
-    unit_price: numeric().notNull().default('0.00'),
+    quantity: integer('quantity').notNull().default(1),
+    unit_price: numeric('unit_price', { mode: 'number' })
+      .notNull()
+      .default(0.0),
   },
   (table) => [
     check(
