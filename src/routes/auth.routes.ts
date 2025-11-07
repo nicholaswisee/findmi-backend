@@ -78,6 +78,8 @@ authRouter.openapi(
   logoutController,
 );
 
+authRouter.use('/verify', authMiddleware);
+
 authRouter.openapi(
   createRoute({
     method: 'get',

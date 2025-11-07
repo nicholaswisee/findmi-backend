@@ -7,6 +7,8 @@ import {
   findOrCreateUserFromGoogle,
   createSessionCookie,
   clearSessionCookieHeader,
+  buildSessionMetadata,
+  getSessionClaims,
 } from '../services/auth.service';
 import { db, schema } from '../db/db';
 import { eq } from 'drizzle-orm';
@@ -51,11 +53,11 @@ export async function googleOAuthCallbackController(c: Context) {
 
     const { payload } = await findOrCreateUserFromGoogle(profile);
 
-    const cookie = await createSessionCookie(payload);
+    const session = await createSessionCookie(payload);
 
     const frontend = process.env.FRONTEND_URL ?? 'http://localhost:4242';
     const res = c.redirect(`${frontend}?login=success`, 302);
-    res.headers.append('Set-Cookie', cookie);
+    res.headers.append('Set-Cookie', session.cookie);
     return res;
   } catch (err) {
     return errorResponse(c, (err as Error).message, 401);
@@ -102,9 +104,18 @@ export async function loginController(c: Context) {
       role: user.role,
     };
 
-    const cookie = await createSessionCookie(payload);
-    const res = successResponse(c, { user }, 'Login successful');
-    res.headers.append('Set-Cookie', cookie);
+    const session = await createSessionCookie(payload);
+    const responseBody = {
+      user: {
+        ...user,
+        email: localAccount.email,
+        provider: localAccount.provider,
+      },
+      session: session.metadata,
+    };
+
+    const res = successResponse(c, responseBody, 'Login successful');
+    res.headers.append('Set-Cookie', session.cookie);
     return res;
   } catch (err) {
     console.error('Login error:', err);
@@ -114,9 +125,16 @@ export async function loginController(c: Context) {
 
 export async function verifyController(c: Context) {
   try {
-    const user = c.get('user'); // set by authMiddleware after verifying JWT
-    if (!user) return errorResponse(c, 'Invalid or expired token', 401);
-    return successResponse(c, user, 'Token valid');
+    const claims = getSessionClaims(c.get('user'));
+    if (!claims) return errorResponse(c, 'Invalid or expired token', 401);
+    return successResponse(
+      c,
+      {
+        payload: claims,
+        session: buildSessionMetadata(claims),
+      },
+      'Token valid',
+    );
   } catch (err) {
     console.error('Verify error:', err);
     return errorResponse(c, (err as Error).message, 500);
@@ -152,9 +170,16 @@ export async function meController(c: Context) {
       .from(schema.accountsTable)
       .where(eq(schema.accountsTable.id, payload.accountId));
 
+    const claims = getSessionClaims(payload);
+    if (!claims) {
+      return errorResponse(c, 'Invalid or expired session', 401);
+    }
     return successResponse(
       c,
-      { ...user, email: account.email, provider: account.provider },
+      {
+        user: { ...user, email: account.email, provider: account.provider },
+        session: buildSessionMetadata(claims),
+      },
       'Session OK',
     );
   } catch (err) {
