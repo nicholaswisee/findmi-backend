@@ -33,4 +33,4 @@ EXPOSE 6969
 
 # ========= Startup =========
 # Auto-run migrations, then start API
-CMD ["bash", "-c", "bunx drizzle-kit generate || true && bunx drizzle-kit migrate || true && bun run dist/index.js"]
+CMD ["bash", "-c", "bunx drizzle-kit push && bun run dist/index.js"]
