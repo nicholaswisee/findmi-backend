@@ -42,7 +42,7 @@ app.use('*', errorMiddleware);
 app.use(
   '*',
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:4242',
+    origin: [process.env.FRONTEND_URL || '', 'http://localhost:4242'],
     credentials: true,
   }),
 );
