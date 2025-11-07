@@ -2,7 +2,7 @@ import { db, schema } from '../db/db';
 import { eq } from 'drizzle-orm';
 import { sign } from 'hono/jwt';
 import type { JWTPayload } from '../types/auth';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHmac } from 'crypto';
 
 const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
@@ -153,27 +153,76 @@ export async function findOrCreateUserFromGoogle(google: {
 }
 
 const JWT_SECRET = required('JWT_SECRET');
+const SESSION_TTL_SECONDS = 60 * 60 * 24; // 24 hours
+
+export type SessionClaims = JWTPayload &
+  Required<Pick<JWTPayload, 'iat' | 'exp'>>;
+
+function withSessionClaims(payload: JWTPayload): SessionClaims {
+  const issuedAt = Math.floor(Date.now() / 1000);
+  return {
+    ...payload,
+    iat: issuedAt,
+    exp: issuedAt + SESSION_TTL_SECONDS,
+  };
+}
+
+export type SessionMetadata = {
+  fingerprint: string;
+  issuedAt: number;
+  expiresAt: number;
+};
+
+function fingerprintForClaims(claims: SessionClaims): string {
+  return createHmac('sha256', JWT_SECRET)
+    .update(`${claims.userId}.${claims.accountId}.${claims.iat}`)
+    .digest('base64url');
+}
+
+export function buildSessionMetadata(claims: SessionClaims): SessionMetadata {
+  return {
+    fingerprint: fingerprintForClaims(claims),
+    issuedAt: claims.iat,
+    expiresAt: claims.exp,
+  };
+}
+
+export function getSessionClaims(
+  payload: JWTPayload | undefined,
+): SessionClaims | null {
+  if (!payload) return null;
+  if (typeof payload.iat !== 'number' || typeof payload.exp !== 'number') {
+    return null;
+  }
+  return payload as SessionClaims;
+}
 
 export async function generateToken(payload: JWTPayload): Promise<string> {
-  return await sign(payload, JWT_SECRET, 'HS256');
+  const claims = withSessionClaims(payload);
+  return await sign(claims, JWT_SECRET, 'HS256');
 }
 
 export async function createSessionCookie(payload: JWTPayload) {
-  const token = await sign(payload, process.env.JWT_SECRET!, 'HS256');
-  return createCookie('ami_session', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Lax',
-    path: '/',
-    maxAge: 60 * 60 * 24,
-  });
+  const claims = withSessionClaims(payload);
+  const token = await sign(claims, JWT_SECRET, 'HS256');
+  return {
+    cookie: createCookie('ami_session', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'None',
+      path: '/',
+      maxAge: SESSION_TTL_SECONDS,
+    }),
+    claims,
+    metadata: buildSessionMetadata(claims),
+  };
 }
 
 export function clearSessionCookieHeader() {
   return createCookie('ami_session', '', {
     httpOnly: true,
     secure: true,
-    sameSite: 'Lax',
+    sameSite: 'None',
     maxAge: 0,
     path: '/',
   });

@@ -9,9 +9,25 @@ export const loginBodySchema = z
   })
   .openapi('LoginBody');
 
+const userWithAccountSchema = userSchema.extend({
+  email: z.string().email().openapi({ example: 'user@example.com' }),
+  provider: z.string().openapi({ example: 'google' }),
+});
+
+export const sessionMetadataSchema = z
+  .object({
+    fingerprint: z
+      .string()
+      .openapi({ example: 'YmFzZTY0dXJsLWZpbmdlcnByaW50' }),
+    issuedAt: z.number().int().openapi({ example: 1700000000 }),
+    expiresAt: z.number().int().openapi({ example: 1700086400 }),
+  })
+  .openapi('SessionMetadata');
+
 export const loginSuccessSchema = createSuccessResponse(
   z.object({
-    user: userSchema,
+    user: userWithAccountSchema,
+    session: sessionMetadataSchema,
   }),
 ).openapi('LoginSuccess');
 
@@ -28,12 +44,16 @@ export const sessionPayloadSchema = z
   })
   .openapi('SessionPayload');
 
-export const verifySuccessSchema =
-  createSuccessResponse(sessionPayloadSchema).openapi('VerifySuccess');
+export const verifySuccessSchema = createSuccessResponse(
+  z.object({
+    payload: sessionPayloadSchema,
+    session: sessionMetadataSchema,
+  }),
+).openapi('VerifySuccess');
 
 export const meSuccessSchema = createSuccessResponse(
-  userSchema.extend({
-    email: z.string().email().openapi({ example: 'user@example.com' }),
-    provider: z.string().openapi({ example: 'google' }),
+  z.object({
+    user: userWithAccountSchema,
+    session: sessionMetadataSchema,
   }),
 ).openapi('MeSuccess');
