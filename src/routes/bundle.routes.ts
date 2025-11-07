@@ -24,6 +24,7 @@ import {
   updateBundleItemsSuccessSchema,
 } from '../schemas/bundle';
 import { baseErrorSchema } from '../schemas/common/response';
+import { adminMiddleware } from '../middlewares/admin.middleware';
 
 const errorSchema = baseErrorSchema.openapi('ErrorResponse');
 
@@ -35,6 +36,15 @@ const registerBundleRoute = (
   config: Parameters<typeof createRoute>[0],
   handler: BundleHandler,
 ) => bundleRouter.openapi(createRoute(config), handler);
+
+bundleRouter.use('*', async (c, next) => {
+  const method = c.req.method.toUpperCase();
+  if (method === 'GET' || method === 'OPTIONS' || method === 'HEAD') {
+    return next();
+  }
+
+  return adminMiddleware(c, next);
+});
 
 registerBundleRoute(
   {

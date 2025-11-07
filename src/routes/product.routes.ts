@@ -24,7 +24,7 @@ import {
   searchQuerySchema,
 } from '../schemas/common/queries';
 import { baseErrorSchema } from '../schemas/common/response';
-import { authMiddleware } from '../middlewares/auth.middleware';
+import { adminMiddleware } from '../middlewares/admin.middleware';
 
 const errorSchema = baseErrorSchema.openapi('ErrorResponse');
 
@@ -36,6 +36,16 @@ const registerProductRoute = (
   config: Parameters<typeof createRoute>[0],
   handler: ProductHandler,
 ) => productRouter.openapi(createRoute(config), handler);
+
+productRouter.use('*', async (c, next) => {
+  const method = c.req.method.toUpperCase();
+  if (method === 'GET' || method === 'OPTIONS' || method === 'HEAD') {
+    return next();
+  }
+
+  // Only admins are allowed to perform mutating product operations
+  return adminMiddleware(c, next);
+});
 
 registerProductRoute(
   {
