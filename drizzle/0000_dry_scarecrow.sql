@@ -1,6 +1,21 @@
-CREATE TYPE "public"."department_enum" AS ENUM('none');--> statement-breakpoint
-CREATE TYPE "public"."division_enum" AS ENUM('none');--> statement-breakpoint
-CREATE TYPE "public"."role_enum" AS ENUM('user', 'admin', 'subadmin');--> statement-breakpoint
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'department_enum') THEN
+        CREATE TYPE "public"."department_enum" AS ENUM('none');
+    END IF;
+END$$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'division_enum') THEN
+        CREATE TYPE "public"."division_enum" AS ENUM('none');
+    END IF;
+END$$;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'role_enum') THEN
+        CREATE TYPE "public"."role_enum" AS ENUM('user','admin','subadmin');
+    END IF;
+END$$;
 CREATE TABLE "accounts" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "accounts_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
 	"provider" varchar(255) NOT NULL,
