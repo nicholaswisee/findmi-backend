@@ -1,1 +1,0 @@
-ALTER TABLE "products" ADD COLUMN "remaining_stock" numeric DEFAULT '0' NOT NULL;
