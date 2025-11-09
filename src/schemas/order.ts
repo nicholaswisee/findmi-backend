@@ -2,6 +2,7 @@ import { z } from '@hono/zod-openapi';
 import { createSuccessResponse } from './common/response';
 import { productSchema } from './product';
 import { bundleSchema } from './bundle';
+import { userSchema } from './user';
 
 export const orderPaymentStatusEnum = z
   .enum(['Pending', 'Paid', 'Failed', 'Refunded'])
@@ -22,6 +23,8 @@ export const orderSchema = z.object({
   payment_status: orderPaymentStatusEnum,
   payment_method: orderPaymentMethodEnum,
   transaction_id: z.string().nullable().optional(),
+  admin_note: z.string().nullable().optional(),
+  is_taken: z.boolean().default(false),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
 });
@@ -72,6 +75,12 @@ export const orderWithItemsSchema = orderSchema
     items: z.array(orderItemDetailedSchema).openapi('OrderItems'),
   })
   .openapi('OrderWithItems');
+
+export const orderWithUserSchema = orderWithItemsSchema
+  .extend({
+    user: userSchema,
+  })
+  .openapi('OrderWithUser');
 
 export const createOrderItemBodySchema = z
   .object({
@@ -132,6 +141,10 @@ export const orderListSchema = z
 export const listOrdersSuccessSchema =
   createSuccessResponse(orderListSchema).openapi('ListOrdersSuccess');
 
+export const listAdminOrdersSuccessSchema = createSuccessResponse(
+  z.array(orderWithUserSchema),
+).openapi('ListAdminOrdersSuccess');
+
 export const getOrderSuccessSchema =
   createSuccessResponse(orderWithItemsSchema).openapi('GetOrderSuccess');
 
@@ -148,6 +161,29 @@ export const midtransNotificationSuccessSchema = createSuccessResponse(
   }),
 ).openapi('MidtransNotificationSuccess');
 
+export const updateOrderAdminBodySchema = z
+  .object({
+    admin_note: z.string().trim().max(1000).optional().openapi({
+      description: 'Catatan internal admin terkait pesanan.',
+      example: 'Order siap diambil jam 15.00',
+    }),
+    is_taken: z
+      .boolean()
+      .optional()
+      .openapi({ description: 'Status apakah pesanan sudah diambil.' }),
+  })
+  .refine(
+    (value) =>
+      typeof value.admin_note !== 'undefined' ||
+      typeof value.is_taken !== 'undefined',
+    {
+      message: 'Minimal pilih salah satu field untuk diperbarui.',
+      path: ['admin_note'],
+    },
+  )
+  .openapi('UpdateOrderAdminBody');
+
 export type Order = z.infer<typeof orderSchema>;
 export type OrderItem = z.infer<typeof orderItemSchema>;
 export type OrderWithItems = z.infer<typeof orderWithItemsSchema>;
+export type OrderWithUser = z.infer<typeof orderWithUserSchema>;

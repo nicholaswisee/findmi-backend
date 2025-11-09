@@ -1,5 +1,6 @@
 export * from './common/response';
 export * from './user';
+export * from './user-with-orders';
 export * from './account';
 export * from './product';
 export * from './bundle';

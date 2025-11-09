@@ -6,6 +6,7 @@ type OrderRow = InferSelectModel<typeof schema.ordersTable>;
 type OrderItemRow = InferSelectModel<typeof schema.orderItemsTable>;
 type ProductRow = InferSelectModel<typeof schema.productsTable>;
 type BundleRow = InferSelectModel<typeof schema.bundlesTable>;
+type UserRow = InferSelectModel<typeof schema.usersTable>;
 
 export type CreateOrderItemInput = {
   productId?: number;
@@ -24,6 +25,10 @@ type OrderItemWithDetails = OrderItemRow & {
 
 export type OrderWithItems = OrderRow & {
   items: OrderItemWithDetails[];
+};
+
+export type OrderWithUser = OrderWithItems & {
+  user: UserRow;
 };
 
 function assertValidItems(items: CreateOrderItemInput[]) {
@@ -71,7 +76,9 @@ async function fetchBundlesMap(ids: number[]): Promise<Map<number, BundleRow>> {
   return new Map(bundles.map((bundle) => [bundle.id, bundle]));
 }
 
-async function buildOrderWithItems(order: OrderRow): Promise<OrderWithItems> {
+export async function buildOrderWithItems(
+  order: OrderRow,
+): Promise<OrderWithItems> {
   const items = await db
     .select()
     .from(schema.orderItemsTable)
@@ -101,6 +108,18 @@ async function buildOrderWithItems(order: OrderRow): Promise<OrderWithItems> {
     ...order,
     items: detailedItems,
   };
+}
+
+async function fetchUsersMap(ids: number[]): Promise<Map<number, UserRow>> {
+  if (ids.length === 0) return new Map();
+  const uniqueIds = Array.from(new Set(ids));
+
+  const users = await db
+    .select()
+    .from(schema.usersTable)
+    .where(inArray(schema.usersTable.id, uniqueIds));
+
+  return new Map(users.map((user) => [user.id, user]));
 }
 
 export async function getOrderById(
@@ -160,7 +179,7 @@ export async function getAllOrders({
 }: {
   limit?: number;
   offset?: number;
-} = {}): Promise<OrderWithItems[]> {
+} = {}): Promise<OrderWithUser[]> {
   const orders = await db
     .select()
     .from(schema.ordersTable)
@@ -168,7 +187,22 @@ export async function getAllOrders({
     .limit(Math.max(1, limit))
     .offset(Math.max(0, offset));
 
-  return Promise.all(orders.map((order) => buildOrderWithItems(order)));
+  const [ordersWithItems, usersMap] = await Promise.all([
+    Promise.all(orders.map((order) => buildOrderWithItems(order))),
+    fetchUsersMap(orders.map((order) => order.user_id)),
+  ]);
+
+  return ordersWithItems.map((order) => {
+    const user = usersMap.get(order.user_id);
+    if (!user) {
+      throw new Error('Pengguna untuk pesanan tidak ditemukan.');
+    }
+
+    return {
+      ...order,
+      user,
+    };
+  });
 }
 
 export async function createOrder(
@@ -332,6 +366,45 @@ export async function updateOrderStatus(
       payment_status: status,
       transaction_id: transactionId ?? null,
     })
+    .where(eq(schema.ordersTable.id, orderId))
+    .returning();
+
+  if (!order) {
+    throw new Error('Pesanan tidak ditemukan.');
+  }
+
+  return buildOrderWithItems(order);
+}
+
+export async function updateOrderAdminFields(
+  orderId: number,
+  {
+    admin_note,
+    is_taken,
+  }: {
+    admin_note?: string | null;
+    is_taken?: boolean;
+  },
+): Promise<OrderWithItems> {
+  const updates: Partial<typeof schema.ordersTable.$inferInsert> = {};
+
+  if (typeof admin_note !== 'undefined') {
+    updates.admin_note = admin_note;
+  }
+
+  if (typeof is_taken !== 'undefined') {
+    updates.is_taken = is_taken;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    throw new Error('Tidak ada data yang diperbarui.');
+  }
+
+  updates.updated_at = new Date();
+
+  const [order] = await db
+    .update(schema.ordersTable)
+    .set(updates)
     .where(eq(schema.ordersTable.id, orderId))
     .returning();
 

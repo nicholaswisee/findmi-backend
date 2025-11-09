@@ -7,6 +7,8 @@ import {
   getOrderForUser,
   getOrdersForUser,
   handleMidtransNotification,
+  getAllOrders,
+  updateOrderAdminFields,
 } from '../services/order.service';
 
 export const createOrderController = controller(async (c: Context) => {
@@ -68,3 +70,56 @@ export const midtransNotificationController = controller(async (c: Context) => {
     'Notifikasi Midtrans diterima. Implementasi lanjutan masih TODO.',
   );
 });
+
+export const getAllOrdersController = controller(async (c: Context) => {
+  const limit = c.req.query('limit');
+  const offset = c.req.query('offset');
+
+  const orders = await getAllOrders({
+    limit: limit ? Number(limit) : 50,
+    offset: offset ? Number(offset) : 0,
+  });
+
+  return successResponse(c, orders, 'Berhasil mengambil semua pesanan.');
+});
+
+export const updateOrderAdminFieldsController = controller(
+  async (c: Context) => {
+    const id = Number(c.req.param('id'));
+    if (!Number.isInteger(id) || id <= 0) {
+      return errorResponse(c, 'ID pesanan tidak valid.', 400);
+    }
+
+    const body = await c.req.json<{
+      admin_note?: string;
+      is_taken?: boolean;
+    }>();
+
+    const hasAdminNote = typeof body.admin_note === 'string';
+    const hasTaken = typeof body.is_taken === 'boolean';
+
+    if (!hasAdminNote && !hasTaken) {
+      return errorResponse(
+        c,
+        'Minimal pilih salah satu field untuk diperbarui.',
+        400,
+      );
+    }
+
+    const adminNote =
+      hasAdminNote && body.admin_note !== undefined
+        ? body.admin_note.trim() || null
+        : undefined;
+
+    const updated = await updateOrderAdminFields(id, {
+      admin_note: adminNote,
+      is_taken: hasTaken ? body.is_taken : undefined,
+    });
+
+    return successResponse(
+      c,
+      updated,
+      'Catatan admin dan status pengambilan pesanan diperbarui.',
+    );
+  },
+);

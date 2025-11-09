@@ -203,6 +203,8 @@ export const ordersTable = pgTable('orders', {
     .notNull()
     .default('Manual'),
   transaction_id: varchar('transaction_id', { length: 255 }),
+  admin_note: text('admin_note'),
+  is_taken: boolean('is_taken').notNull().default(false),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 });
