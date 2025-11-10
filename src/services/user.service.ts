@@ -36,7 +36,9 @@ export async function getUsersWithOrders({
   const searchFilter = trimmedSearch
     ? or(
         ilike(schema.usersTable.name, `%${trimmedSearch}%`),
-        ilike(schema.usersTable.department, `%${trimmedSearch}%`),
+        ilike(schema.usersTable.nim, `%${trimmedSearch}%`),
+        ilike(schema.usersTable.no_wa, `%${trimmedSearch}%`),
+        ilike(schema.usersTable.line_id, `%${trimmedSearch}%`),
       )
     : undefined;
   const departmentFilter = department
@@ -47,30 +49,26 @@ export async function getUsersWithOrders({
       ? and(searchFilter, departmentFilter)
       : (searchFilter ?? departmentFilter);
 
-  let totalQuery = db
+  const totalQuery = db
     .select({
       count: sql<number>`cast(count(*) as int)`,
     })
     .from(schema.usersTable);
 
-  if (combinedFilter) {
-    totalQuery = totalQuery.where(combinedFilter);
-  }
+  const [totalResult] = await (combinedFilter
+    ? totalQuery.where(combinedFilter)
+    : totalQuery);
 
-  const [totalResult] = await totalQuery;
-
-  let usersQuery = db
+  const usersQuery = db
     .select()
     .from(schema.usersTable)
     .orderBy(desc(schema.usersTable.created_at))
     .limit(safeLimit)
     .offset(safeOffset);
 
-  if (combinedFilter) {
-    usersQuery = usersQuery.where(combinedFilter);
-  }
-
-  const users = await usersQuery;
+  const users = await (combinedFilter
+    ? usersQuery.where(combinedFilter)
+    : usersQuery);
 
   if (users.length === 0) {
     return {

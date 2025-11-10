@@ -163,7 +163,7 @@ export const midtransNotificationSuccessSchema = createSuccessResponse(
 
 export const updateOrderAdminBodySchema = z
   .object({
-    admin_note: z.string().trim().max(1000).optional().openapi({
+    admin_note: z.string().trim().max(1000).nullable().optional().openapi({
       description: 'Catatan internal admin terkait pesanan.',
       example: 'Order siap diambil jam 15.00',
     }),

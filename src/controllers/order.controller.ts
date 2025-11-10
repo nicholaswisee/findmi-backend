@@ -95,7 +95,8 @@ export const updateOrderAdminFieldsController = controller(
       is_taken?: boolean;
     }>();
 
-    const hasAdminNote = typeof body.admin_note === 'string';
+    const hasAdminNote =
+      typeof body.admin_note === 'string' || body.admin_note === null;
     const hasTaken = typeof body.is_taken === 'boolean';
 
     if (!hasAdminNote && !hasTaken) {
@@ -106,10 +107,14 @@ export const updateOrderAdminFieldsController = controller(
       );
     }
 
-    const adminNote =
-      hasAdminNote && body.admin_note !== undefined
-        ? body.admin_note.trim() || null
-        : undefined;
+    let adminNote: string | null | undefined = undefined;
+    if (hasAdminNote) {
+      if (body.admin_note === null) {
+        adminNote = null;
+      } else if (typeof body.admin_note === 'string') {
+        adminNote = body.admin_note.trim() || null;
+      }
+    }
 
     const updated = await updateOrderAdminFields(id, {
       admin_note: adminNote,
