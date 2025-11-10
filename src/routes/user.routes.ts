@@ -2,7 +2,11 @@ import { OpenAPIHono, createRoute, z } from '@hono/zod-openapi';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { adminMiddleware } from '../middlewares/admin.middleware';
 import { getUsersWithOrdersController } from '../controllers/user.controller';
-import { baseErrorSchema, usersWithOrdersSuccessSchema } from '../schemas';
+import {
+  baseErrorSchema,
+  userDepartmentEnum,
+  usersWithOrdersSuccessSchema,
+} from '../schemas';
 
 export const userRouter = new OpenAPIHono();
 
@@ -21,6 +25,7 @@ const querySchema = z
     limit: z.coerce.number().int().positive().max(100).optional(),
     offset: z.coerce.number().int().nonnegative().optional(),
     search: z.string().optional(),
+    department: userDepartmentEnum.optional(),
   })
   .openapi('UserOrdersQuery');
 

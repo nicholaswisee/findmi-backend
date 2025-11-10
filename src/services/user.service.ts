@@ -1,7 +1,8 @@
-import { and, desc, ilike, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { db, schema } from '../db/db';
 import { buildOrderWithItems, type OrderWithItems } from './order.service';
+import type { UserDepartmentEnum } from '../schemas';
 
 type UserRow = InferSelectModel<typeof schema.usersTable>;
 
@@ -22,17 +23,29 @@ export async function getUsersWithOrders({
   limit = 20,
   offset = 0,
   search,
+  department,
 }: {
   limit?: number;
   offset?: number;
   search?: string;
+  department?: UserDepartmentEnum;
 } = {}): Promise<UsersWithOrdersResult> {
   const safeLimit = Math.max(1, Math.min(MAX_LIMIT, limit));
   const safeOffset = Math.max(0, offset);
   const trimmedSearch = search?.trim();
   const searchFilter = trimmedSearch
-    ? ilike(schema.usersTable.name, `%${trimmedSearch}%`)
+    ? or(
+        ilike(schema.usersTable.name, `%${trimmedSearch}%`),
+        ilike(schema.usersTable.department, `%${trimmedSearch}%`),
+      )
     : undefined;
+  const departmentFilter = department
+    ? eq(schema.usersTable.department, department)
+    : undefined;
+  const combinedFilter =
+    searchFilter && departmentFilter
+      ? and(searchFilter, departmentFilter)
+      : (searchFilter ?? departmentFilter);
 
   let totalQuery = db
     .select({
@@ -40,8 +53,8 @@ export async function getUsersWithOrders({
     })
     .from(schema.usersTable);
 
-  if (searchFilter) {
-    totalQuery = totalQuery.where(searchFilter);
+  if (combinedFilter) {
+    totalQuery = totalQuery.where(combinedFilter);
   }
 
   const [totalResult] = await totalQuery;
@@ -53,8 +66,8 @@ export async function getUsersWithOrders({
     .limit(safeLimit)
     .offset(safeOffset);
 
-  if (searchFilter) {
-    usersQuery = usersQuery.where(searchFilter);
+  if (combinedFilter) {
+    usersQuery = usersQuery.where(combinedFilter);
   }
 
   const users = await usersQuery;

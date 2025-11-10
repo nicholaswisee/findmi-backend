@@ -128,7 +128,7 @@ export const productsTable = pgTable('products', {
   description: text('description').notNull().default(''),
   price: numeric('price', { mode: 'number' }).notNull().default(0.0),
   category: userDepartmentEnum('category').notNull().default('none'),
-  image_url: varchar('image_url', { length: 512 }).notNull().default(''),
+  image_url: text('image_url').notNull().default(''),
   remaining_stock: numeric('remaining_stock', { mode: 'number' })
     .notNull()
     .default(0),
@@ -145,7 +145,7 @@ export const bundlesTable = pgTable('bundles', {
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description').notNull().default(''),
   bundle_items: jsonb('bundle_items').notNull(),
-  image_url: varchar('image_url', { length: 512 }).notNull().default(''),
+  image_url: text('image_url').notNull().default(''),
   price: numeric('price', { mode: 'number' }).notNull().default(0.0),
   category: userDepartmentEnum('category').notNull().default('none'),
   is_hidden: boolean('is_hidden').notNull().default(false),
