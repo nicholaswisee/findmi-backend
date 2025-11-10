@@ -141,8 +141,17 @@ export const orderListSchema = z
 export const listOrdersSuccessSchema =
   createSuccessResponse(orderListSchema).openapi('ListOrdersSuccess');
 
+const paginatedOrderWithUserSchema = z
+  .object({
+    orders: z.array(orderWithUserSchema),
+    total: z.number().int().nonnegative(),
+    limit: z.number().int().positive(),
+    offset: z.number().int().nonnegative(),
+  })
+  .openapi('PaginatedOrderWithUser');
+
 export const listAdminOrdersSuccessSchema = createSuccessResponse(
-  z.array(orderWithUserSchema),
+  paginatedOrderWithUserSchema,
 ).openapi('ListAdminOrdersSuccess');
 
 export const getOrderSuccessSchema =

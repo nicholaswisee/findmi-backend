@@ -1,6 +1,7 @@
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { db, schema } from '../db/db';
+import type { UserDepartmentEnum } from '../schemas';
 
 type OrderRow = InferSelectModel<typeof schema.ordersTable>;
 type OrderItemRow = InferSelectModel<typeof schema.orderItemsTable>;
@@ -173,36 +174,122 @@ export async function getOrdersForUser(
   return Promise.all(orders.map((order) => buildOrderWithItems(order)));
 }
 
+export type OrderListFilters = {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  department?: UserDepartmentEnum;
+  pickup?: 'taken' | 'pending';
+};
+
+function buildOrderWhereClause({
+  search,
+  department,
+  pickup,
+}: OrderListFilters) {
+  const filters = [];
+
+  if (department) {
+    filters.push(eq(schema.usersTable.department, department));
+  }
+
+  if (pickup === 'taken') {
+    filters.push(eq(schema.ordersTable.is_taken, true));
+  } else if (pickup === 'pending') {
+    filters.push(eq(schema.ordersTable.is_taken, false));
+  }
+
+  const trimmedSearch = search?.trim();
+  if (trimmedSearch) {
+    const likeValue = `%${trimmedSearch}%`;
+    filters.push(
+      or(
+        ilike(schema.usersTable.name, likeValue),
+        ilike(schema.usersTable.nim, likeValue),
+        ilike(schema.ordersTable.transaction_id, likeValue),
+      ),
+    );
+  }
+
+  if (filters.length === 0) {
+    return undefined;
+  }
+
+  return and(...filters);
+}
+
+export type OrdersWithUsersResult = {
+  orders: OrderWithUser[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
 export async function getAllOrders({
   limit = 50,
   offset = 0,
-}: {
-  limit?: number;
-  offset?: number;
-} = {}): Promise<OrderWithUser[]> {
-  const orders = await db
-    .select()
-    .from(schema.ordersTable)
-    .orderBy(desc(schema.ordersTable.created_at))
-    .limit(Math.max(1, limit))
-    .offset(Math.max(0, offset));
+  search,
+  department,
+  pickup,
+}: OrderListFilters = {}): Promise<OrdersWithUsersResult> {
+  const safeLimit = Math.max(1, Math.min(100, limit));
+  const safeOffset = Math.max(0, offset);
+  const whereClause = buildOrderWhereClause({
+    search,
+    department,
+    pickup,
+  });
 
-  const [ordersWithItems, usersMap] = await Promise.all([
-    Promise.all(orders.map((order) => buildOrderWithItems(order))),
-    fetchUsersMap(orders.map((order) => order.user_id)),
+  const baseQuery = db
+    .select({
+      order: schema.ordersTable,
+      user: schema.usersTable,
+    })
+    .from(schema.ordersTable)
+    .innerJoin(
+      schema.usersTable,
+      eq(schema.usersTable.id, schema.ordersTable.user_id),
+    )
+    .orderBy(desc(schema.ordersTable.created_at))
+    .limit(safeLimit)
+    .offset(safeOffset);
+
+  const totalQuery = db
+    .select({
+      count: sql<number>`cast(count(*) as int)`,
+    })
+    .from(schema.ordersTable)
+    .innerJoin(
+      schema.usersTable,
+      eq(schema.usersTable.id, schema.ordersTable.user_id),
+    );
+
+  const [rows, totalRows] = await Promise.all([
+    whereClause ? baseQuery.where(whereClause) : baseQuery,
+    whereClause ? totalQuery.where(whereClause) : totalQuery,
   ]);
 
-  return ordersWithItems.map((order) => {
-    const user = usersMap.get(order.user_id);
+  const ordersWithItems = await Promise.all(
+    rows.map((row) => buildOrderWithItems(row.order)),
+  );
+
+  const orders = ordersWithItems.map((order, index) => {
+    const user = rows[index]?.user;
     if (!user) {
       throw new Error('Pengguna untuk pesanan tidak ditemukan.');
     }
-
     return {
       ...order,
       user,
     };
   });
+
+  return {
+    orders,
+    total: Number(totalRows[0]?.count ?? 0),
+    limit: safeLimit,
+    offset: safeOffset,
+  };
 }
 
 export async function createOrder(

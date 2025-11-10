@@ -20,6 +20,7 @@ import {
 import { baseErrorSchema } from '../schemas/common/response';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { adminMiddleware } from '../middlewares/admin.middleware';
+import { userDepartmentEnum } from '../schemas/user';
 
 const errorSchema = baseErrorSchema.openapi('OrderErrorResponse');
 
@@ -114,9 +115,7 @@ registerOrderRoute(
     responses: {
       200: {
         description: 'Orders retrieved',
-        content: {
-          'application/json': { schema: listAdminOrdersSuccessSchema },
-        },
+        content: { 'application/json': { schema: listOrdersSuccessSchema } },
       },
       401: {
         description: 'Unauthorized',
@@ -141,13 +140,16 @@ registerOrderRoute(
       query: z.object({
         limit: z.coerce.number().int().positive().max(100).optional(),
         offset: z.coerce.number().int().nonnegative().optional(),
+        search: z.string().trim().max(255).optional(),
+        department: userDepartmentEnum.optional(),
+        pickup: z.enum(['taken', 'pending']).optional(),
       }),
     },
     responses: {
       200: {
         description: 'Orders retrieved',
         content: {
-          'application/json': { schema: listOrdersSuccessSchema },
+          'application/json': { schema: listAdminOrdersSuccessSchema },
         },
       },
       401: {

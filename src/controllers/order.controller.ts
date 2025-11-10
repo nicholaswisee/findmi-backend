@@ -10,6 +10,7 @@ import {
   getAllOrders,
   updateOrderAdminFields,
 } from '../services/order.service';
+import type { UserDepartmentEnum } from '../schemas';
 
 export const createOrderController = controller(async (c: Context) => {
   const userId = getUserId(c);
@@ -74,10 +75,21 @@ export const midtransNotificationController = controller(async (c: Context) => {
 export const getAllOrdersController = controller(async (c: Context) => {
   const limit = c.req.query('limit');
   const offset = c.req.query('offset');
+  const search = c.req.query('search');
+  const departmentParam = c.req.query('department');
+  const pickupParam = c.req.query('pickup');
+
+  const pickupFilter =
+    pickupParam === 'taken' || pickupParam === 'pending'
+      ? pickupParam
+      : undefined;
 
   const orders = await getAllOrders({
     limit: limit ? Number(limit) : 50,
     offset: offset ? Number(offset) : 0,
+    search: search?.trim(),
+    department: departmentParam as UserDepartmentEnum | undefined,
+    pickup: pickupFilter,
   });
 
   return successResponse(c, orders, 'Berhasil mengambil semua pesanan.');
