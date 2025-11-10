@@ -1,7 +1,31 @@
-import { and, asc, desc, eq, ilike, or } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db, schema } from '../db/db';
 import type { UserDepartmentEnum } from '../schemas';
 import type { BundleItemsJSON } from '../db/schema';
+
+function buildBundleWhereClause({
+  category,
+  search,
+}: {
+  category?: UserDepartmentEnum;
+  search?: string;
+}) {
+  const filters = [];
+  if (category) {
+    filters.push(eq(schema.bundlesTable.category, category));
+  }
+  const trimmedSearch = search?.trim();
+  if (trimmedSearch) {
+    filters.push(
+      or(
+        ilike(schema.bundlesTable.name, `%${trimmedSearch}%`),
+        ilike(schema.bundlesTable.description, `%${trimmedSearch}%`),
+      ),
+    );
+  }
+  if (filters.length === 0) return undefined;
+  return and(...filters);
+}
 
 export async function getAllBundles({
   category,
@@ -16,24 +40,13 @@ export async function getAllBundles({
   limit?: number;
   offset?: number;
 }) {
-  const conditions = [];
+  const safeLimit = Math.max(1, Math.min(100, limit));
+  const safeOffset = Math.max(0, offset);
+  const whereClause = buildBundleWhereClause({ category, search });
 
-  if (category) {
-    conditions.push(eq(schema.bundlesTable.category, category));
-  }
-  if (search) {
-    conditions.push(
-      or(
-        ilike(schema.bundlesTable.name, `%${search}%`),
-        ilike(schema.bundlesTable.description, `%${search}%`),
-      ),
-    );
-  }
-
-  const query = db
+  const baseQuery = db
     .select()
     .from(schema.bundlesTable)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(
       sortBy === 'price_asc'
         ? asc(schema.bundlesTable.price)
@@ -41,10 +54,26 @@ export async function getAllBundles({
           ? desc(schema.bundlesTable.price)
           : desc(schema.bundlesTable.id),
     )
-    .limit(limit)
-    .offset(offset);
+    .limit(safeLimit)
+    .offset(safeOffset);
 
-  return await query;
+  const totalQuery = db
+    .select({
+      count: sql<number>`cast(count(*) as int)`,
+    })
+    .from(schema.bundlesTable);
+
+  const [bundles, totalRows] = await Promise.all([
+    whereClause ? baseQuery.where(whereClause) : baseQuery,
+    whereClause ? totalQuery.where(whereClause) : totalQuery,
+  ]);
+
+  return {
+    bundles,
+    total: Number(totalRows[0]?.count ?? 0),
+    limit: safeLimit,
+    offset: safeOffset,
+  };
 }
 
 export async function getBundleById(id: number) {

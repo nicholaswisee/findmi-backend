@@ -33,7 +33,7 @@ function normalizeBundle<T extends { bundle_items: unknown }>(
 
 export const getAllBundlesController = controller(async (c: Context) => {
   const query = c.req.query();
-  const bundles = await getAllBundles({
+  const result = await getAllBundles({
     category: query.category as UserDepartmentEnum,
     search: query.search,
     sortBy: query.sortBy as 'latest' | 'price_asc' | 'price_desc',
@@ -41,9 +41,18 @@ export const getAllBundlesController = controller(async (c: Context) => {
     offset: query.offset ? Number(query.offset) : 0,
   });
 
-  const transformedBundles = bundles.map((bundle) => normalizeBundle(bundle));
+  const transformedBundles = result.bundles.map((bundle) =>
+    normalizeBundle(bundle),
+  );
 
-  return successResponse(c, transformedBundles, 'Berhasil mendapatkan bundle.');
+  return successResponse(
+    c,
+    {
+      ...result,
+      bundles: transformedBundles,
+    },
+    'Berhasil mendapatkan bundle.',
+  );
 });
 
 export const getBundleByIdController = controller(async (c: Context) => {

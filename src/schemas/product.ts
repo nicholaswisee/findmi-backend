@@ -20,6 +20,15 @@ export const productSchema = z
 
 export const productListSchema = z.array(productSchema).openapi('ProductList');
 
+const paginatedProductListSchema = z
+  .object({
+    products: productListSchema,
+    total: z.number().int().nonnegative(),
+    limit: z.number().int().positive(),
+    offset: z.number().int().nonnegative(),
+  })
+  .openapi('PaginatedProductList');
+
 export const createProductBodySchema = z
   .object({
     name: z.string().min(1).openapi({ example: 'FindMI Tote Bag' }),
@@ -48,7 +57,7 @@ export const getProductSuccessSchema =
   createSuccessResponse(productSchema).openapi('GetProductSuccess');
 
 export const getAllProductsSuccessSchema = createSuccessResponse(
-  productListSchema,
+  paginatedProductListSchema,
 ).openapi('GetAllProductsSuccess');
 
 export const updateProductSuccessSchema = createSuccessResponse(

@@ -32,6 +32,15 @@ export const bundleSchema = z
 
 export const bundleListSchema = z.array(bundleSchema).openapi('BundleList');
 
+const paginatedBundleListSchema = z
+  .object({
+    bundles: bundleListSchema,
+    total: z.number().int().nonnegative(),
+    limit: z.number().int().positive(),
+    offset: z.number().int().nonnegative(),
+  })
+  .openapi('PaginatedBundleList');
+
 export const createBundleBodySchema = z
   .object({
     name: z.string().min(1).openapi({ example: 'Paket AMI Merchandise' }),
@@ -61,7 +70,7 @@ export const getBundleSuccessSchema =
   createSuccessResponse(bundleSchema).openapi('GetBundleSuccess');
 
 export const getAllBundlesSuccessSchema = createSuccessResponse(
-  bundleListSchema,
+  paginatedBundleListSchema,
 ).openapi('GetAllBundlesSuccess');
 
 export const updateBundleSuccessSchema = createSuccessResponse(

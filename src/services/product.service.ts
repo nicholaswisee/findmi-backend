@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, ilike, or } from 'drizzle-orm';
+import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { db, schema } from '../db/db';
 import type { UserDepartmentEnum } from '../schemas';
 
@@ -6,6 +6,30 @@ import type { UserDepartmentEnum } from '../schemas';
 // Import the enum type for category if available, or extract it from your schema
 
 // Import the enum type for category from your schema
+function buildProductWhereClause({
+  category,
+  search,
+}: {
+  category?: UserDepartmentEnum;
+  search?: string;
+}) {
+  const filters = [];
+  if (category) {
+    filters.push(eq(schema.productsTable.category, category));
+  }
+  const trimmedSearch = search?.trim();
+  if (trimmedSearch) {
+    filters.push(
+      or(
+        ilike(schema.productsTable.name, `%${trimmedSearch}%`),
+        ilike(schema.productsTable.description, `%${trimmedSearch}%`),
+      ),
+    );
+  }
+  if (filters.length === 0) return undefined;
+  return and(...filters);
+}
+
 export async function getAllProducts({
   category,
   search,
@@ -19,24 +43,13 @@ export async function getAllProducts({
   limit?: number;
   offset?: number;
 }) {
-  const conditions = [];
+  const safeLimit = Math.max(1, Math.min(100, limit));
+  const safeOffset = Math.max(0, offset);
+  const whereClause = buildProductWhereClause({ category, search });
 
-  if (category) {
-    conditions.push(eq(schema.productsTable.category, category));
-  }
-  if (search) {
-    conditions.push(
-      or(
-        ilike(schema.productsTable.name, `%${search}%`),
-        ilike(schema.productsTable.description, `%${search}%`),
-      ),
-    );
-  }
-
-  const query = db
+  const baseQuery = db
     .select()
     .from(schema.productsTable)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(
       sortBy === 'price_asc'
         ? asc(schema.productsTable.price)
@@ -44,10 +57,26 @@ export async function getAllProducts({
           ? desc(schema.productsTable.price)
           : desc(schema.productsTable.id),
     )
-    .limit(limit)
-    .offset(offset);
+    .limit(safeLimit)
+    .offset(safeOffset);
 
-  return await query;
+  const totalQuery = db
+    .select({
+      count: sql<number>`cast(count(*) as int)`,
+    })
+    .from(schema.productsTable);
+
+  const [products, totalRows] = await Promise.all([
+    whereClause ? baseQuery.where(whereClause) : baseQuery,
+    whereClause ? totalQuery.where(whereClause) : totalQuery,
+  ]);
+
+  return {
+    products,
+    total: Number(totalRows[0]?.count ?? 0),
+    limit: safeLimit,
+    offset: safeOffset,
+  };
 }
 
 // TO-DO: Fetch single product by ID
