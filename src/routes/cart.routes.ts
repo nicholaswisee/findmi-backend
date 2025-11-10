@@ -18,10 +18,17 @@ const errorSchema = baseErrorSchema.openapi('CartErrorResponse');
 
 export const cartRouter = new OpenAPIHono();
 
+type CartHandler = Parameters<typeof cartRouter.openapi>[1];
+
+const registerCartRoute = (
+  config: Parameters<typeof createRoute>[0],
+  handler: CartHandler,
+) => cartRouter.openapi(createRoute(config), handler);
+
 cartRouter.use('*', authMiddleware);
 
-cartRouter.openapi(
-  createRoute({
+registerCartRoute(
+  {
     method: 'get',
     path: '/',
     summary: 'Get current user cart',
@@ -40,12 +47,12 @@ cartRouter.openapi(
         content: { 'application/json': { schema: errorSchema } },
       },
     },
-  }),
+  },
   getCart,
 );
 
-cartRouter.openapi(
-  createRoute({
+registerCartRoute(
+  {
     method: 'post',
     path: '/items',
     summary: 'Add item to cart',
@@ -73,12 +80,12 @@ cartRouter.openapi(
         content: { 'application/json': { schema: errorSchema } },
       },
     },
-  }),
+  },
   addToCart,
 );
 
-cartRouter.openapi(
-  createRoute({
+registerCartRoute(
+  {
     method: 'patch',
     path: '/items/{itemId}',
     summary: 'Update cart item quantity',
@@ -113,12 +120,12 @@ cartRouter.openapi(
         content: { 'application/json': { schema: errorSchema } },
       },
     },
-  }),
+  },
   updateCart,
 );
 
-cartRouter.openapi(
-  createRoute({
+registerCartRoute(
+  {
     method: 'delete',
     path: '/items/{itemId}',
     summary: 'Remove cart item',
@@ -150,12 +157,12 @@ cartRouter.openapi(
         content: { 'application/json': { schema: errorSchema } },
       },
     },
-  }),
+  },
   removeCartItem,
 );
 
-cartRouter.openapi(
-  createRoute({
+registerCartRoute(
+  {
     method: 'delete',
     path: '/',
     summary: 'Clear cart',
@@ -174,7 +181,7 @@ cartRouter.openapi(
         content: { 'application/json': { schema: errorSchema } },
       },
     },
-  }),
+  },
   clearCart,
 );
 

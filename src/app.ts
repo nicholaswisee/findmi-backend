@@ -11,6 +11,8 @@ import productRouter from './routes/product.routes';
 import bundleRouter from './routes/bundle.routes';
 import cartRouter from './routes/cart.routes';
 import orderRouter from './routes/order.routes';
+import cloudinaryRouter from './routes/cloudinary.route';
+import userRouter from './routes/user.routes';
 
 export const app = new OpenAPIHono({
   defaultHook: (result, c) => {
@@ -99,6 +101,8 @@ app.route('/product', productRouter);
 app.route('/bundle', bundleRouter);
 app.route('/cart', cartRouter);
 app.route('/order', orderRouter);
+app.route('/cloudinary', cloudinaryRouter);
+app.route('/user', userRouter);
 
 app.get(
   '/docs',
