@@ -1,16 +1,20 @@
 import { db, schema } from './db';
-import { sql } from 'drizzle-orm';
+import { sql, eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 
 // Configurable sizes
-const NUM_USERS = 50;
-const NUM_ACCOUNTS = 50; // one per user
-const NUM_PRODUCTS = 50;
-const NUM_BUNDLES = 50;
-const NUM_CARTS = 50;
-const NUM_CART_ITEMS = 50;
-const NUM_ORDERS = 50;
-const NUM_ORDER_ITEMS = 50;
+const NUM_USERS = Number(process.env.SEED_NUM_USERS ?? 100);
+const NUM_ACCOUNTS = Number(process.env.SEED_NUM_ACCOUNTS ?? NUM_USERS);
+const NUM_PRODUCTS = Number(process.env.SEED_NUM_PRODUCTS ?? 120);
+const NUM_BUNDLES = Number(process.env.SEED_NUM_BUNDLES ?? 80);
+const NUM_CARTS = Number(process.env.SEED_NUM_CARTS ?? 120);
+const NUM_CART_ITEMS = Number(
+  process.env.SEED_NUM_CART_ITEMS ?? Math.max(NUM_CARTS * 2, 240),
+);
+const NUM_ORDERS = Number(process.env.SEED_NUM_ORDERS ?? 220);
+const NUM_ORDER_ITEMS = Number(
+  process.env.SEED_NUM_ORDER_ITEMS ?? Math.max(NUM_ORDERS * 2, 240),
+);
 
 function randInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -89,6 +93,23 @@ const roles = ['user', 'admin', 'subadmin'] as const;
 
 const paymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'] as const;
 const paymentMethods = ['Manual', 'Xendit', 'Midtrans', 'GoPay'] as const;
+
+const DEFAULT_ADMIN_NIM = process.env.SEED_ADMIN_NIM ?? '13524034';
+const DEFAULT_ADMIN_PASSWORD =
+  process.env.SEED_ADMIN_PASSWORD ?? 'Password123!';
+const DEFAULT_ADMIN_EMAIL =
+  process.env.SEED_ADMIN_EMAIL ?? '13524034@admin.findmi.local';
+const DEFAULT_ADMIN_NAME = process.env.SEED_ADMIN_NAME ?? '13524034';
+
+function randomDateWithinPastWeeks(weeks = 24) {
+  const now = new Date();
+  const totalDays = weeks * 7;
+  const offsetDays = randInt(0, totalDays);
+  const result = new Date(now);
+  result.setDate(now.getDate() - offsetDays);
+  result.setHours(randInt(0, 23), randInt(0, 59), randInt(0, 59), 0);
+  return result;
+}
 
 async function resetAll() {
   console.log('Truncating tables...');
@@ -192,6 +213,68 @@ async function seedAccounts(userIds: number[]) {
   return inserted.map((r) => r.id);
 }
 
+async function seedAdminUser() {
+  console.log('Ensuring default admin account...');
+  const passwordHash = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
+
+  const existingUser = await db
+    .select({ id: schema.usersTable.id })
+    .from(schema.usersTable)
+    .where(eq(schema.usersTable.nim, DEFAULT_ADMIN_NIM))
+    .limit(1);
+
+  let userId: number;
+
+  if (existingUser.length > 0) {
+    userId = existingUser[0].id;
+    await db
+      .update(schema.usersTable)
+      .set({
+        name: DEFAULT_ADMIN_NAME,
+        department: 'IT',
+        division: 'IT',
+        rank: 'Ketua',
+        no_wa: '081234567890',
+        line_id: 'admin13524034',
+        role: 'admin',
+        updated_at: new Date(),
+      })
+      .where(eq(schema.usersTable.id, userId));
+    await db
+      .delete(schema.accountsTable)
+      .where(eq(schema.accountsTable.user_id, userId));
+  } else {
+    const [insertedUser] = await db
+      .insert(schema.usersTable)
+      .values({
+        name: DEFAULT_ADMIN_NAME,
+        department: 'IT',
+        division: 'IT',
+        rank: 'Ketua',
+        nim: DEFAULT_ADMIN_NIM,
+        no_wa: '081234567890',
+        line_id: 'admin13524034',
+        role: 'admin',
+      })
+      .returning({ id: schema.usersTable.id });
+    userId = insertedUser.id;
+  }
+
+  await db.insert(schema.accountsTable).values({
+    provider: 'local',
+    provider_id: `admin_${DEFAULT_ADMIN_NIM}`,
+    email: DEFAULT_ADMIN_EMAIL,
+    user_id: userId,
+    password: passwordHash,
+  });
+
+  console.log(
+    `Admin account created. NIM: ${DEFAULT_ADMIN_NIM} Password: ${DEFAULT_ADMIN_PASSWORD}`,
+  );
+
+  return userId;
+}
+
 async function seedProducts() {
   console.log(`Seeding ${NUM_PRODUCTS} products...`);
   const productsValues = Array.from({ length: NUM_PRODUCTS }, (_, i) => ({
@@ -271,14 +354,23 @@ async function seedCartItems(
 
 async function seedOrders(userIds: number[]) {
   console.log(`Seeding ${NUM_ORDERS} orders...`);
-  const values = Array.from({ length: NUM_ORDERS }, () => ({
-    user_id: pick(userIds),
-    total_amount: (randInt(30, 800) * 1000).toFixed(2),
-    payment_status: pick(paymentStatuses),
-    payment_method: pick(paymentMethods),
-    transaction_id:
-      Math.random() < 0.5 ? `tx_${Date.now()}_${randInt(1000, 9999)}` : null,
-  }));
+  const values = Array.from({ length: NUM_ORDERS }, () => {
+    const createdAt = randomDateWithinPastWeeks(26);
+    const payment_status = Math.random() < 0.7 ? 'Paid' : pick(paymentStatuses);
+    const transaction_id =
+      payment_status === 'Paid' || Math.random() < 0.4
+        ? `tx_${createdAt.getTime()}_${randInt(1000, 9999)}`
+        : null;
+    return {
+      user_id: pick(userIds),
+      total_amount: (randInt(30, 800) * 1000).toFixed(2),
+      payment_status,
+      payment_method: pick(paymentMethods),
+      transaction_id,
+      created_at: createdAt,
+      updated_at: createdAt,
+    };
+  });
   const inserted = await db
     .insert(schema.ordersTable)
     .values(values)
@@ -319,6 +411,10 @@ async function main() {
 
   const userIds = await seedUsers();
   await seedAccounts(userIds);
+  const adminUserId = await seedAdminUser();
+  if (!userIds.includes(adminUserId)) {
+    userIds.push(adminUserId);
+  }
 
   const productIds = await seedProducts();
   const bundleIds = await seedBundles(productIds);
