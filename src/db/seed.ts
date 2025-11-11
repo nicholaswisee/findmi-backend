@@ -280,7 +280,7 @@ async function seedProducts() {
   const productsValues = Array.from({ length: NUM_PRODUCTS }, (_, i) => ({
     name: `Product ${i + 1}`,
     description: `Description for product ${i + 1}`,
-    price: (randInt(10, 200) * 1000).toFixed(2),
+    price: randInt(10, 200) * 1000,
     category: pick(departments),
     image_url: `https://example.com/product-${i + 1}.png`,
   }));
@@ -307,7 +307,7 @@ async function seedBundles(productIds: number[]) {
       description: `Bundle description ${i + 1}`,
       bundle_items: bundleItems as any,
       image_url: `https://example.com/bundle-${i + 1}.png`,
-      price: (randInt(20, 400) * 1000).toFixed(2),
+      price: randInt(20, 400) * 1000,
       category: pick(departments),
       is_hidden: Math.random() < 0.1,
     };
@@ -363,7 +363,7 @@ async function seedOrders(userIds: number[]) {
         : null;
     return {
       user_id: pick(userIds),
-      total_amount: (randInt(30, 800) * 1000).toFixed(2),
+      total_amount: randInt(30, 800) * 1000,
       payment_status,
       payment_method: pick(paymentMethods),
       transaction_id,
@@ -389,7 +389,7 @@ async function seedOrderItems(
     const base = {
       order_id: pick(orderIds),
       quantity: randInt(1, 5),
-      unit_price: (randInt(10, 300) * 1000).toFixed(2),
+      unit_price: randInt(10, 300) * 1000,
     } as any;
     if (isProduct) {
       base.product_id = pick(productIds);
