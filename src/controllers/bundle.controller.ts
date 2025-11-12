@@ -57,7 +57,7 @@ export const getAllBundlesController = controller(async (c: Context) => {
 
 export const getBundleByIdController = controller(async (c: Context) => {
   const id = Number(c.req.param('id'));
-  if (isNaN(id)) return errorResponse(c, 'ID Bundle Invalid', 400);
+  if (isNaN(id)) return errorResponse(c, 'ID bundle tidak valid.', 400);
 
   const bundle = await getBundleById(id);
   if (!bundle) return errorResponse(c, 'Bundle tidak ditemukan.', 404);
@@ -97,17 +97,17 @@ export const createBundleController = controller(async (c: Context) => {
 
 export const updateBundleController = controller(async (c: Context) => {
   const id = Number(c.req.param('id'));
-  if (isNaN(id)) return errorResponse(c, 'ID Bundle Invalid.', 400);
+  if (isNaN(id)) return errorResponse(c, 'ID bundle tidak valid.', 400);
 
   const body = await c.req.json();
   const updated = normalizeBundle(await updateBundle(id, body));
 
-  return successResponse(c, updated, 'Bundle updated successfully');
+  return successResponse(c, updated, 'Bundle berhasil diperbarui.');
 });
 
 export const deleteBundleController = controller(async (c: Context) => {
   const id = Number(c.req.param('id'));
-  if (isNaN(id)) return errorResponse(c, 'ID Bundle invalid..', 400);
+  if (isNaN(id)) return errorResponse(c, 'ID bundle tidak valid.', 400);
 
   const result = await deleteBundle(id);
   return successResponse(c, result, 'Bundle berhasil dihapus.');
@@ -143,7 +143,7 @@ export const updateBundleItemsController = controller(async (c: Context) => {
     newItems: BundleItemsJSON;
   }>();
 
-  if (isNaN(id)) return errorResponse(c, 'Permintaan invalid.', 400);
+  if (isNaN(id)) return errorResponse(c, 'Permintaan tidak valid.', 400);
 
   const updated = normalizeBundle(await updateBundleItems(id, newItems));
   return successResponse(c, updated, 'Stok berhasil diperbarui.');

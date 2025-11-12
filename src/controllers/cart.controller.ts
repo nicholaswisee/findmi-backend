@@ -13,7 +13,7 @@ import { getUserId } from '../utils/user';
 
 export const getCart = controller(async (c: Context) => {
   const userId = getUserId(c);
-  if (!userId) return errorResponse(c, 'Unauthorized', 401);
+  if (!userId) return errorResponse(c, 'Tidak memiliki akses.', 401);
 
   const cart = await getCartByUserId(userId);
   return successResponse(c, cart, 'Berhasil mendapatkan keranjang.');
@@ -21,7 +21,7 @@ export const getCart = controller(async (c: Context) => {
 
 export const addToCart = controller(async (c: Context) => {
   const userId = getUserId(c);
-  if (!userId) return errorResponse(c, 'Unauthorized', 401);
+  if (!userId) return errorResponse(c, 'Tidak memiliki akses.', 401);
 
   const body = await c.req.json<{
     productId?: number;
@@ -40,7 +40,7 @@ export const addToCart = controller(async (c: Context) => {
 
 export const updateCart = controller(async (c: Context) => {
   const userId = getUserId(c);
-  if (!userId) return errorResponse(c, 'Unauthorized', 401);
+  if (!userId) return errorResponse(c, 'Tidak memiliki akses.', 401);
 
   const cartItemId = Number(c.req.param('itemId'));
   if (!Number.isInteger(cartItemId) || cartItemId <= 0) {
@@ -55,7 +55,7 @@ export const updateCart = controller(async (c: Context) => {
 
 export const removeCartItem = controller(async (c: Context) => {
   const userId = getUserId(c);
-  if (!userId) return errorResponse(c, 'Unauthorized', 401);
+  if (!userId) return errorResponse(c, 'Tidak memiliki akses.', 401);
 
   const cartItemId = Number(c.req.param('itemId'));
   if (!Number.isInteger(cartItemId) || cartItemId <= 0) {
@@ -68,7 +68,7 @@ export const removeCartItem = controller(async (c: Context) => {
 
 export const clearCart = controller(async (c: Context) => {
   const userId = getUserId(c);
-  if (!userId) return errorResponse(c, 'Unauthorized', 401);
+  if (!userId) return errorResponse(c, 'Tidak memiliki akses.', 401);
 
   const cart = await clearCartService(userId);
   return successResponse(c, cart, 'Keranjang berhasil dikosongkan.');

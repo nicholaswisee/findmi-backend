@@ -35,7 +35,7 @@ export async function googleOAuthCallbackController(c: Context) {
     const match = /google_oauth_state=([^;]+)/.exec(cookieHeader);
     const stateFromCookie = match ? decodeURIComponent(match[1]) : null;
 
-    if (!code) return errorResponse(c, 'Missing authorization code', 400);
+    if (!code) return errorResponse(c, 'Kode otorisasi tidak ditemukan.', 400);
     if (
       !stateFromQuery ||
       !stateFromCookie ||
@@ -43,7 +43,7 @@ export async function googleOAuthCallbackController(c: Context) {
     )
       return errorResponse(
         c,
-        'Invalid OAuth state (possible CSRF attack)',
+        'Status OAuth tidak valid (kemungkinan serangan CSRF).',
         400,
       );
 
@@ -70,7 +70,7 @@ export async function loginController(c: Context) {
     const { nim, password } = body;
 
     if (!nim || !password)
-      return errorResponse(c, 'NIM and password are required', 400);
+      return errorResponse(c, 'NIM dan kata sandi wajib diisi.', 400);
 
     const users = await db
       .select()
@@ -78,7 +78,7 @@ export async function loginController(c: Context) {
       .where(eq(schema.usersTable.nim, nim));
 
     if (users.length === 0) {
-      return errorResponse(c, 'Invalid NIM or password', 401);
+      return errorResponse(c, 'NIM atau kata sandi tidak valid.', 401);
     }
 
     const user = users[0];
@@ -91,11 +91,12 @@ export async function loginController(c: Context) {
     const localAccount = accounts.find((a) => a.password);
 
     if (!localAccount) {
-      return errorResponse(c, 'This account uses Google login', 400);
+      return errorResponse(c, 'Akun ini menggunakan login Google.', 400);
     }
 
     const match = await bcrypt.compare(password, localAccount.password!);
-    if (!match) return errorResponse(c, 'Invalid NIM or password', 401);
+    if (!match)
+      return errorResponse(c, 'NIM atau kata sandi tidak valid.', 401);
 
     const payload = {
       userId: user.id,
@@ -114,7 +115,7 @@ export async function loginController(c: Context) {
       session: session.metadata,
     };
 
-    const res = successResponse(c, responseBody, 'Login successful');
+    const res = successResponse(c, responseBody, 'Login berhasil.');
     res.headers.append('Set-Cookie', session.cookie);
     return res;
   } catch (err) {
@@ -126,14 +127,15 @@ export async function loginController(c: Context) {
 export async function verifyController(c: Context) {
   try {
     const claims = getSessionClaims(c.get('user'));
-    if (!claims) return errorResponse(c, 'Invalid or expired token', 401);
+    if (!claims)
+      return errorResponse(c, 'Token tidak valid atau telah kedaluwarsa.', 401);
     return successResponse(
       c,
       {
         payload: claims,
         session: buildSessionMetadata(claims),
       },
-      'Token valid',
+      'Token masih berlaku.',
     );
   } catch (err) {
     console.error('Verify error:', err);
@@ -143,7 +145,7 @@ export async function verifyController(c: Context) {
 
 export async function logoutController(c: Context) {
   const cookie = clearSessionCookieHeader();
-  const res = successResponse(c, { ok: true }, 'Logged out');
+  const res = successResponse(c, { ok: true }, 'Berhasil keluar.');
   res.headers.append('Set-Cookie', cookie);
   return res;
 }
@@ -153,7 +155,7 @@ export async function meController(c: Context) {
     const payload = c.get('user');
 
     if (!payload || !payload.userId) {
-      return errorResponse(c, 'Not authenticated', 401);
+      return errorResponse(c, 'Tidak terautentikasi.', 401);
     }
 
     const [user] = await db
@@ -162,7 +164,7 @@ export async function meController(c: Context) {
       .where(eq(schema.usersTable.id, payload.userId));
 
     if (!user) {
-      return errorResponse(c, 'User not found', 404);
+      return errorResponse(c, 'Pengguna tidak ditemukan.', 404);
     }
 
     const [account] = await db
@@ -172,7 +174,7 @@ export async function meController(c: Context) {
 
     const claims = getSessionClaims(payload);
     if (!claims) {
-      return errorResponse(c, 'Invalid or expired session', 401);
+      return errorResponse(c, 'Sesi tidak valid atau telah kedaluwarsa.', 401);
     }
     return successResponse(
       c,
@@ -180,10 +182,10 @@ export async function meController(c: Context) {
         user: { ...user, email: account.email, provider: account.provider },
         session: buildSessionMetadata(claims),
       },
-      'Session OK',
+      'Sesi aktif.',
     );
   } catch (err) {
     console.error('meController error:', err);
-    return errorResponse(c, 'Failed to fetch user', 500);
+    return errorResponse(c, 'Gagal mengambil data pengguna.', 500);
   }
 }

@@ -128,7 +128,7 @@ export async function createBundle({
     });
 
   if (!bundle) {
-    throw new Error('Failed to create bundle');
+    throw new Error('Gagal membuat bundle.');
   }
 
   return bundle;

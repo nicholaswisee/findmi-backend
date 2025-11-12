@@ -6,11 +6,11 @@ export const adminMiddleware: MiddlewareHandler = async (c, next) => {
   const user = c.get('user') as JWTPayload | undefined;
 
   if (!user) {
-    return errorResponse(c, 'Unauthorized', 401);
+    return errorResponse(c, 'Tidak memiliki akses.', 401);
   }
 
   if (user.role !== 'admin') {
-    return errorResponse(c, 'Forbidden', 403);
+    return errorResponse(c, 'Tidak memiliki izin.', 403);
   }
 
   await next();

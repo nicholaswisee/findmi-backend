@@ -132,7 +132,7 @@ export async function createProduct({
     });
 
   if (!product) {
-    throw new Error('Failed to create product');
+    throw new Error('Gagal membuat produk.');
   }
 
   return product;

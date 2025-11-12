@@ -7,13 +7,13 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 
 export const authMiddleware: MiddlewareHandler = async (c, next) => {
   const token = getCookie(c, 'ami_session');
-  if (!token) return errorResponse(c, 'Unauthorized', 401);
+  if (!token) return errorResponse(c, 'Tidak memiliki akses.', 401);
 
   try {
     const payload = await verify(token, JWT_SECRET, 'HS256');
     c.set('user', payload);
     await next();
   } catch {
-    return errorResponse(c, 'Invalid or expired session', 401);
+    return errorResponse(c, 'Sesi tidak valid atau telah kedaluwarsa.', 401);
   }
 };

@@ -20,7 +20,10 @@ export const app = new OpenAPIHono({
     if (!result.success) {
       // Validasi otomatis untuk semua request
       return c.json(
-        { error: 'Invalid request', details: z.treeifyError(result.error) },
+        {
+          error: 'Permintaan tidak valid',
+          details: z.treeifyError(result.error),
+        },
         400,
       );
     }
@@ -80,7 +83,7 @@ app.get('/', (c) =>
     name: 'FindMI API',
     version: '1.0.0',
     status: 'healthy',
-    message: 'Backend running successfully.',
+    message: 'Backend berjalan dengan baik.',
   }),
 );
 

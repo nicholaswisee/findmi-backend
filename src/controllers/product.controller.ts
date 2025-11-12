@@ -28,7 +28,7 @@ export const getAllProductsController = controller(async (c: Context) => {
 
 export const getProductByIdController = controller(async (c: Context) => {
   const id = Number(c.req.param('id'));
-  if (isNaN(id)) return errorResponse(c, 'ID Produk Invalid.', 400);
+  if (isNaN(id)) return errorResponse(c, 'ID produk tidak valid.', 400);
 
   const product = await getProductById(id);
   if (!product) return errorResponse(c, 'Produk tidak ditemukan.', 404);
@@ -59,17 +59,17 @@ export const createProductController = controller(async (c: Context) => {
 
 export const updateProductController = controller(async (c: Context) => {
   const id = Number(c.req.param('id'));
-  if (isNaN(id)) return errorResponse(c, 'ID Produk Invalid.', 400);
+  if (isNaN(id)) return errorResponse(c, 'ID produk tidak valid.', 400);
 
   const body = await c.req.json();
   const updated = await updateProduct(id, body);
 
-  return successResponse(c, updated, 'Product updated successfully');
+  return successResponse(c, updated, 'Produk berhasil diperbarui.');
 });
 
 export const deleteProductController = controller(async (c: Context) => {
   const id = Number(c.req.param('id'));
-  if (isNaN(id)) return errorResponse(c, 'ID Produk invalid..', 400);
+  if (isNaN(id)) return errorResponse(c, 'ID produk tidak valid.', 400);
 
   const result = await deleteProduct(id);
   return successResponse(c, result, 'Produk berhasil dihapus.');
@@ -102,7 +102,7 @@ export const updateProductStockController = controller(async (c: Context) => {
   }>();
 
   if (isNaN(id) || typeof remaining_quantity !== 'number')
-    return errorResponse(c, 'Permintaan invalid.', 400);
+    return errorResponse(c, 'Permintaan tidak valid.', 400);
 
   const updated = await updateProductStock(id, remaining_quantity);
   return successResponse(c, updated, 'Stok berhasil diperbarui.');

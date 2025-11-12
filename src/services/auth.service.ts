@@ -11,7 +11,7 @@ const GOOGLE_USERINFO_ENDPOINT =
 
 function required(name: string) {
   const v = process.env[name];
-  if (!v) throw new Error(`Missing env: ${name}`);
+  if (!v) throw new Error(`Variabel lingkungan ${name} tidak ditemukan.`);
   return v;
 }
 
@@ -53,7 +53,7 @@ export async function exchangeCodeForTokens(code: string) {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
   });
-  if (!res.ok) throw new Error('Failed to exchange code for tokens');
+  if (!res.ok) throw new Error('Gagal menukar kode dengan token.');
   return (await res.json()) as {
     access_token: string;
     id_token?: string;
@@ -68,7 +68,7 @@ export async function getGoogleUserInfo(accessToken: string) {
   const res = await fetch(GOOGLE_USERINFO_ENDPOINT, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!res.ok) throw new Error('Failed to fetch Google user info');
+  if (!res.ok) throw new Error('Gagal mengambil data pengguna Google.');
   return (await res.json()) as {
     sub: string;
     email: string;
@@ -110,7 +110,7 @@ export async function findOrCreateUserFromGoogle(google: {
   const [user] = await db
     .insert(schema.usersTable)
     .values({
-      name: google.name ?? 'Google User',
+      name: google.name ?? 'Pengguna Google',
       department: 'none',
       division: 'none',
       rank: 'none',

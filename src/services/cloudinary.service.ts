@@ -18,7 +18,7 @@ const CLOUDINARY_API_SECRET = required('CLOUDINARY_API_SECRET');
 function required(name: string) {
   const value = process.env[name];
   if (!value) {
-    throw new Error(`Missing Cloudinary env: ${name}`);
+    throw new Error(`Variabel Cloudinary ${name} tidak ditemukan.`);
   }
   return value;
 }

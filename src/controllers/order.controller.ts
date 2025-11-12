@@ -14,7 +14,7 @@ import type { UserDepartmentEnum } from '../schemas';
 
 export const createOrderController = controller(async (c: Context) => {
   const userId = getUserId(c);
-  if (!userId) return errorResponse(c, 'Unauthorized', 401);
+  if (!userId) return errorResponse(c, 'Tidak memiliki akses.', 401);
 
   const body = await c.req.json<{
     items: Array<{ productId?: number; bundleId?: number; quantity: number }>;
@@ -32,7 +32,7 @@ export const createOrderController = controller(async (c: Context) => {
 
 export const getMyOrdersController = controller(async (c: Context) => {
   const userId = getUserId(c);
-  if (!userId) return errorResponse(c, 'Unauthorized', 401);
+  if (!userId) return errorResponse(c, 'Tidak memiliki akses.', 401);
 
   const limit = c.req.query('limit');
   const offset = c.req.query('offset');
@@ -47,7 +47,7 @@ export const getMyOrdersController = controller(async (c: Context) => {
 
 export const getOrderByIdController = controller(async (c: Context) => {
   const userId = getUserId(c);
-  if (!userId) return errorResponse(c, 'Unauthorized', 401);
+  if (!userId) return errorResponse(c, 'Tidak memiliki akses.', 401);
 
   const id = Number(c.req.param('id'));
   if (!Number.isInteger(id) || id <= 0) {

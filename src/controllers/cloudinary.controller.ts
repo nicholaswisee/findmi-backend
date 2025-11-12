@@ -14,7 +14,7 @@ export const createCloudinarySignatureController = controller(
     return successResponse(
       c,
       signature,
-      'Cloudinary upload signature generated successfully.',
+      'Tanda tangan unggahan Cloudinary berhasil dibuat.',
     );
   },
 );
