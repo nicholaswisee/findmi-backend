@@ -33,8 +33,13 @@ const registerOrderRoute = (
   handler: OrderHandler,
 ) => orderRouter.openapi(createRoute(config), handler);
 
-orderRouter.use('/admin', authMiddleware);
-orderRouter.use('/admin/*', authMiddleware);
+orderRouter.use('*', async (c, next) => {
+  if (c.req.path.startsWith('/midtrans/notifications')) {
+    return next();
+  }
+  return authMiddleware(c, next);
+});
+
 orderRouter.use('/admin', adminMiddleware);
 orderRouter.use('/admin/*', adminMiddleware);
 
