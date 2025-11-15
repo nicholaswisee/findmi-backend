@@ -6,7 +6,7 @@ import { verify } from 'hono/jwt';
 const JWT_SECRET = process.env.JWT_SECRET!;
 
 export const authMiddleware: MiddlewareHandler = async (c, next) => {
-  const token = getCookie(c, 'ami_session');
+  const token = getCookie(c, 'session');
   if (!token) return errorResponse(c, 'Tidak memiliki akses.', 401);
 
   try {

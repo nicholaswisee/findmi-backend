@@ -206,7 +206,7 @@ export async function createSessionCookie(payload: JWTPayload) {
   const claims = withSessionClaims(payload);
   const token = await sign(claims, JWT_SECRET, 'HS256');
   return {
-    cookie: createCookie('ami_session', token, {
+    cookie: createCookie('session', token, {
       httpOnly: true,
       secure: true,
       sameSite: 'None',
@@ -219,7 +219,7 @@ export async function createSessionCookie(payload: JWTPayload) {
 }
 
 export function clearSessionCookieHeader() {
-  return createCookie('ami_session', '', {
+  return createCookie('session', '', {
     httpOnly: true,
     secure: true,
     sameSite: 'None',
