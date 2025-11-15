@@ -103,3 +103,30 @@ export const userSchema = z.object({
 });
 
 export type User = z.infer<typeof userSchema>;
+
+export const updateUserBodySchema = z
+  .object({
+    name: z.string().max(255).optional(),
+    department: userDepartmentEnum.optional(),
+    division: userDivisionEnum.optional(),
+    rank: userRankEnum.optional(),
+    nim: z.string().max(255).optional(),
+    no_wa: z.string().max(255).optional(),
+    line_id: z.string().max(255).optional(),
+    role: userRoleEnum.optional(),
+  })
+  .openapi('UpdateUserBody');
+
+export const updateUserParamsSchema = z
+  .object({
+    id: z.coerce.number().int().positive(),
+  })
+  .openapi('UpdateUserParams');
+
+export const updateUserSuccessSchema = z
+  .object({
+    success: z.boolean().openapi({ example: true }),
+    message: z.string().openapi({ example: 'Berhasil memperbarui pengguna.' }),
+    data: userSchema,
+  })
+  .openapi('UpdateUserSuccess');

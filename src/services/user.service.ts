@@ -2,7 +2,7 @@ import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { db, schema } from '../db/db';
 import { buildOrderWithItems, type OrderWithItems } from './order.service';
-import type { UserDepartmentEnum } from '../schemas';
+import type { User, UserDepartmentEnum } from '../schemas';
 
 type UserRow = InferSelectModel<typeof schema.usersTable>;
 
@@ -108,4 +108,26 @@ export async function getUsersWithOrders({
     limit: safeLimit,
     offset: safeOffset,
   };
+}
+
+export async function updateUser(
+  userId: number,
+  data: UserRow,
+): Promise<UserRow> {
+  const updateData: UserRow = {
+    ...data,
+    updated_at: new Date(),
+  };
+
+  const [updatedUser] = await db
+    .update(schema.usersTable)
+    .set(updateData)
+    .where(eq(schema.usersTable.id, userId))
+    .returning();
+
+  if (!updatedUser) {
+    throw new Error('Pengguna tidak ditemukan.');
+  }
+
+  return updatedUser;
 }

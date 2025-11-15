@@ -1,7 +1,7 @@
 import type { Context } from 'hono';
 import { controller } from '../utils/controller';
-import { successResponse } from '../utils/response';
-import { getUsersWithOrders } from '../services/user.service';
+import { successResponse, errorResponse } from '../utils/response';
+import { getUsersWithOrders, updateUser } from '../services/user.service';
 import type { UserDepartmentEnum } from '../schemas';
 
 export const getUsersWithOrdersController = controller(async (c: Context) => {
@@ -22,4 +22,17 @@ export const getUsersWithOrdersController = controller(async (c: Context) => {
     result,
     'Berhasil mengambil pengguna beserta pesanan mereka.',
   );
+});
+
+export const updateUserController = controller(async (c: Context) => {
+  try {
+    const userId = Number(c.req.param('id'));
+    const body = await c.req.json();
+
+    const updatedUser = await updateUser(userId, body);
+
+    return successResponse(c, updatedUser, 'Berhasil memperbarui pengguna.');
+  } catch (err) {
+    return errorResponse(c, (err as Error).message, 404);
+  }
 });
