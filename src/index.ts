@@ -2,7 +2,9 @@ import 'dotenv/config';
 import { serve } from '@hono/node-server';
 import { app } from './app';
 import { loadEnv } from './utils/env';
+import { silenceConsoleLogsInProduction } from './utils/logger';
 loadEnv();
+silenceConsoleLogsInProduction();
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 

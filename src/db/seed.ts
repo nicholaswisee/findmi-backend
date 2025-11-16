@@ -1,6 +1,9 @@
 import { db, schema } from './db';
 import { sql, eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
+import { silenceConsoleLogsInProduction } from '../utils/logger';
+
+silenceConsoleLogsInProduction();
 
 // Configurable sizes
 const NUM_USERS = Number(process.env.SEED_NUM_USERS ?? 100);
