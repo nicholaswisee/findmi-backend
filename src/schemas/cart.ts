@@ -10,7 +10,7 @@ const cartItemProductSchema = productSchema
     price: true,
     category: true,
     description: true,
-    image_url: true,
+    image_urls: true,
     remaining_stock: true,
   })
   .openapi('CartItemProduct');
@@ -22,7 +22,7 @@ const cartItemBundleSchema = bundleSchema
     price: true,
     category: true,
     description: true,
-    image_url: true,
+    image_urls: true,
     bundle_items: true,
     is_hidden: true,
   })

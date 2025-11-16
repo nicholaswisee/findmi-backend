@@ -45,7 +45,7 @@ const orderItemProductSchema = productSchema
     price: true,
     category: true,
     description: true,
-    image_url: true,
+    image_urls: true,
     remaining_stock: true,
   })
   .openapi('OrderItemProduct');
@@ -57,7 +57,7 @@ const orderItemBundleSchema = bundleSchema
     price: true,
     category: true,
     description: true,
-    image_url: true,
+    image_urls: true,
     bundle_items: true,
     is_hidden: true,
   })

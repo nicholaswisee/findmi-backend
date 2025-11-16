@@ -12,9 +12,9 @@ export function loadEnv() {
     JWT_SECRET: z.string(),
     COOKIE_DOMAIN: z.string(),
     FRONTEND_URL: z.string().optional(),
-    CLOUDINARY_CLOUD_NAME: z.string(),
-    CLOUDINARY_API_KEY: z.string(),
-    CLOUDINARY_API_SECRET: z.string(),
+    UPLOADS_DIR: z.string().optional(),
+    UPLOADS_PUBLIC_PATH: z.string().optional(),
+    UPLOADS_BASE_URL: z.string().url().optional(),
   });
 
   const parsed = schema.safeParse(process.env);

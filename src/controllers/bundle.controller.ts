@@ -76,7 +76,7 @@ export const createBundleController = controller(async (c: Context) => {
     description?: string;
     bundle_items: BundleItemsJSON;
     category?: UserDepartmentEnum;
-    image_url?: string;
+    image_urls?: string[];
     is_hidden?: boolean;
   }>();
 

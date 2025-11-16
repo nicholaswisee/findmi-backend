@@ -11,8 +11,12 @@ export const productSchema = z
       .string()
       .optional()
       .openapi({ example: 'Comfortable oversized hoodie with AMI 2026 logo.' }),
-    image_url: z.url().openapi({
-      example: 'https://cdn.findmi.akumasukitb.com/products/hoodie.png',
+    image_urls: z.array(z.string().url()).openapi({
+      example: [
+        'https://cdn.findmi.akumasukitb.com/products/hoodie-front.png',
+        'https://cdn.findmi.akumasukitb.com/products/hoodie-back.png',
+      ],
+      description: 'Daftar URL gambar produk.',
     }),
     remaining_stock: z.number().int().nonnegative().openapi({ example: 50 }),
   })
@@ -39,9 +43,14 @@ export const createProductBodySchema = z
       .openapi({ example: 'Durable eco-friendly tote bag for daily use.' }),
     stock: z.number().int().nonnegative().openapi({ example: 120 }),
     category: z.string().optional().openapi({ example: 'Fundraising' }),
-    imageUrl: z.url().optional().openapi({
-      example: 'https://cdn.findmi.akumasukitb.com/products/totebag.png',
-    }),
+    image_urls: z
+      .array(z.string().url())
+      .optional()
+      .openapi({
+        example: [
+          'https://cdn.findmi.akumasukitb.com/products/totebag-front.png',
+        ],
+      }),
   })
   .openapi('CreateProductBody');
 

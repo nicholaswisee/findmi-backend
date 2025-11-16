@@ -22,8 +22,11 @@ export const bundleSchema = z
       .string()
       .optional()
       .openapi({ example: 'Bundle spesial berisi berbagai produk AMI.' }),
-    image_url: z.url().openapi({
-      example: 'https://cdn.findmi.akumasukitb.com/bundles/ami-bundle.png',
+    image_urls: z.array(z.string().url()).openapi({
+      example: [
+        'https://cdn.findmi.akumasukitb.com/bundles/ami-bundle-1.png',
+        'https://cdn.findmi.akumasukitb.com/bundles/ami-bundle-2.png',
+      ],
     }),
     bundle_items: bundleItemsJSONSchema,
     is_hidden: z.boolean().openapi({ example: false }),
@@ -50,9 +53,14 @@ export const createBundleBodySchema = z
       .optional()
       .openapi({ example: 'Bundle spesial berisi berbagai produk AMI.' }),
     category: z.string().optional().openapi({ example: 'Merchandise' }),
-    image_url: z.url().optional().openapi({
-      example: 'https://cdn.findmi.akumasukitb.com/bundles/ami-bundle.png',
-    }),
+    image_urls: z
+      .array(z.string().url())
+      .optional()
+      .openapi({
+        example: [
+          'https://cdn.findmi.akumasukitb.com/bundles/ami-bundle-1.png',
+        ],
+      }),
     bundle_items: bundleItemsJSONSchema,
     is_hidden: z.boolean().optional().openapi({ example: false }),
   })

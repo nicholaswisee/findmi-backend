@@ -92,7 +92,7 @@ export async function createBundle({
   name,
   description,
   bundle_items,
-  image_url,
+  image_urls,
   price,
   category,
   is_hidden,
@@ -102,7 +102,7 @@ export async function createBundle({
   price: number;
   bundle_items: BundleItemsJSON;
   category?: UserDepartmentEnum;
-  image_url?: string;
+  image_urls?: string[];
   is_hidden: boolean;
 }) {
   const [bundle] = await db
@@ -113,7 +113,7 @@ export async function createBundle({
       description: description,
       bundle_items: bundle_items,
       category: category,
-      image_url: image_url,
+      image_urls: image_urls && image_urls.length > 0 ? image_urls : [],
       is_hidden: is_hidden,
     })
     .returning({
@@ -123,7 +123,7 @@ export async function createBundle({
       description: schema.bundlesTable.description,
       bundle_items: schema.bundlesTable.bundle_items,
       category: schema.bundlesTable.category,
-      image_url: schema.bundlesTable.image_url,
+      image_urls: schema.bundlesTable.image_urls,
       is_hidden: schema.bundlesTable.is_hidden,
     });
 
@@ -142,7 +142,7 @@ export async function updateBundle(
     description?: string;
     bundle_items: BundleItemsJSON;
     category?: UserDepartmentEnum;
-    image_url?: string;
+    image_urls?: string[];
     is_hidden: boolean;
   }>,
 ) {
@@ -154,7 +154,7 @@ export async function updateBundle(
   if (data.bundle_items !== undefined)
     updateData.bundle_items = data.bundle_items;
   if (data.category !== undefined) updateData.category = data.category;
-  if (data.image_url !== undefined) updateData.image_url = data.image_url;
+  if (data.image_urls !== undefined) updateData.image_urls = data.image_urls;
   if (data.is_hidden !== undefined) updateData.is_hidden = data.is_hidden;
 
   const [updateBundle] = await db
@@ -168,7 +168,7 @@ export async function updateBundle(
       description: schema.bundlesTable.description,
       bundle_items: schema.bundlesTable.bundle_items,
       category: schema.bundlesTable.category,
-      image_url: schema.bundlesTable.image_url,
+      image_urls: schema.bundlesTable.image_urls,
       is_hidden: schema.bundlesTable.is_hidden,
     });
 

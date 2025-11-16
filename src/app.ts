@@ -3,6 +3,7 @@ import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { authMiddleware } from './middlewares/auth.middleware';
 import { errorMiddleware } from './middlewares/error.middleware';
 import { rateLimiter } from 'hono-rate-limiter';
@@ -11,9 +12,10 @@ import productRouter from './routes/product.routes';
 import bundleRouter from './routes/bundle.routes';
 import cartRouter from './routes/cart.routes';
 import orderRouter from './routes/order.routes';
-import cloudinaryRouter from './routes/cloudinary.route';
+import uploadRouter from './routes/upload.route';
 import userRouter from './routes/user.routes';
 import analyticsRouter from './routes/analytics.routes';
+import { UPLOADS_DIR, UPLOADS_PUBLIC_PATH } from './constants/storage';
 
 export const app = new OpenAPIHono({
   defaultHook: (result, c) => {
@@ -50,6 +52,27 @@ app.use(
   cors({
     origin: [process.env.FRONTEND_URL || '', 'http://localhost:4242'],
     credentials: true,
+  }),
+);
+
+const uploadsRoutePrefix =
+  UPLOADS_PUBLIC_PATH.endsWith('/') && UPLOADS_PUBLIC_PATH !== '/'
+    ? UPLOADS_PUBLIC_PATH.slice(0, -1)
+    : UPLOADS_PUBLIC_PATH;
+
+const stripUploadsPrefix = (path: string) => {
+  if (path.startsWith(uploadsRoutePrefix)) {
+    const trimmed = path.slice(uploadsRoutePrefix.length);
+    return trimmed.replace(/^\/+/, '');
+  }
+  return path;
+};
+
+app.use(
+  `${uploadsRoutePrefix}/*`,
+  serveStatic({
+    root: UPLOADS_DIR,
+    rewriteRequestPath: (path) => stripUploadsPrefix(path),
   }),
 );
 
@@ -105,7 +128,7 @@ app.route('/product', productRouter);
 app.route('/bundle', bundleRouter);
 app.route('/cart', cartRouter);
 app.route('/order', orderRouter);
-app.route('/cloudinary', cloudinaryRouter);
+app.route('/media', uploadRouter);
 app.route('/user', userRouter);
 app.route('/analytics', analyticsRouter);
 

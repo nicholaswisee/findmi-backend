@@ -128,7 +128,10 @@ export const productsTable = pgTable('products', {
   description: text('description').notNull().default(''),
   price: numeric('price', { mode: 'number' }).notNull().default(0.0),
   category: userDepartmentEnum('category').notNull().default('none'),
-  image_url: text('image_url').notNull().default(''),
+  image_urls: jsonb('image_urls')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   remaining_stock: numeric('remaining_stock', { mode: 'number' })
     .notNull()
     .default(0),
@@ -145,7 +148,10 @@ export const bundlesTable = pgTable('bundles', {
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description').notNull().default(''),
   bundle_items: jsonb('bundle_items').notNull(),
-  image_url: text('image_url').notNull().default(''),
+  image_urls: jsonb('image_urls')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   price: numeric('price', { mode: 'number' }).notNull().default(0.0),
   category: userDepartmentEnum('category').notNull().default('none'),
   is_hidden: boolean('is_hidden').notNull().default(false),

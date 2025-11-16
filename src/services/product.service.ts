@@ -102,14 +102,14 @@ export async function createProduct({
   description,
   stock,
   category,
-  image_url,
+  image_urls,
 }: {
   name: string;
   price: number;
   description?: string;
   stock: number;
   category?: UserDepartmentEnum;
-  image_url?: string;
+  image_urls?: string[];
 }) {
   const [product] = await db
     .insert(schema.productsTable)
@@ -118,7 +118,7 @@ export async function createProduct({
       price,
       category: (category || 'none') as UserDepartmentEnum,
       description: description || '',
-      image_url: image_url || '',
+      image_urls: image_urls && image_urls.length > 0 ? image_urls : [],
       remaining_stock: stock,
     })
     .returning({
@@ -127,7 +127,7 @@ export async function createProduct({
       price: schema.productsTable.price,
       category: schema.productsTable.category,
       description: schema.productsTable.description,
-      image_url: schema.productsTable.image_url,
+      image_urls: schema.productsTable.image_urls,
       remaining_stock: schema.productsTable.remaining_stock,
     });
 
@@ -147,7 +147,7 @@ export async function updateProduct(
     description?: string;
     stock: number;
     category?: UserDepartmentEnum;
-    image_url?: string;
+    image_urls?: string[];
   }>,
 ) {
   const [existingProduct] = await db
@@ -165,7 +165,7 @@ export async function updateProduct(
   if (data.description !== undefined) updateData.description = data.description;
   if (data.stock !== undefined) updateData.remaining_stock = data.stock;
   if (data.category !== undefined) updateData.category = data.category;
-  if (data.image_url !== undefined) updateData.image_url = data.image_url;
+  if (data.image_urls !== undefined) updateData.image_urls = data.image_urls;
 
   const [updatedProduct] = await db
     .update(schema.productsTable)
@@ -177,7 +177,7 @@ export async function updateProduct(
       price: schema.productsTable.price,
       category: schema.productsTable.category,
       description: schema.productsTable.description,
-      image_url: schema.productsTable.image_url,
+      image_urls: schema.productsTable.image_urls,
       remaining_stock: schema.productsTable.remaining_stock,
     });
 

@@ -285,7 +285,7 @@ async function seedProducts() {
     description: `Description for product ${i + 1}`,
     price: randInt(10, 200) * 1000,
     category: pick(departments),
-    image_url: `https://example.com/product-${i + 1}.png`,
+    image_urls: [`https://example.com/product-${i + 1}.png`],
   }));
   const inserted = await db
     .insert(schema.productsTable)
@@ -309,7 +309,7 @@ async function seedBundles(productIds: number[]) {
       name: `Bundle ${i + 1}`,
       description: `Bundle description ${i + 1}`,
       bundle_items: bundleItems as any,
-      image_url: `https://example.com/bundle-${i + 1}.png`,
+      image_urls: [`https://example.com/bundle-${i + 1}.png`],
       price: randInt(20, 400) * 1000,
       category: pick(departments),
       is_hidden: Math.random() < 0.1,
