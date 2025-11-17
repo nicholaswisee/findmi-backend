@@ -27,6 +27,11 @@ export const addToCart = controller(async (c: Context) => {
     productId?: number;
     bundleId?: number;
     quantity: number;
+    size?: string;
+    bundleSelections?: Array<{
+      productId: number;
+      size?: string | null;
+    }>;
   }>();
 
   const cart = await addItemToCart(userId, body);

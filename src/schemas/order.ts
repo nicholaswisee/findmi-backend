@@ -36,6 +36,20 @@ export const orderItemSchema = z.object({
   bundle_id: z.number().int().nullable().optional(),
   quantity: z.number().int(),
   unit_price: z.string(),
+  selected_size: z.string().min(1).max(64).nullable().optional().openapi({
+    description: 'Ukuran produk yang dipilih jika item adalah produk tunggal.',
+    example: 'M',
+  }),
+  selected_bundle_items: z
+    .array(
+      z.object({
+        product_id: z.number().int().positive(),
+        size: z.string().min(1),
+      }),
+    )
+    .openapi({
+      description: 'Pilihan ukuran untuk setiap produk dalam bundle.',
+    }),
 });
 
 const orderItemProductSchema = productSchema
@@ -47,6 +61,7 @@ const orderItemProductSchema = productSchema
     description: true,
     image_urls: true,
     remaining_stock: true,
+    available_sizes: true,
   })
   .openapi('OrderItemProduct');
 
@@ -87,6 +102,28 @@ export const createOrderItemBodySchema = z
     productId: z.number().int().positive().optional(),
     bundleId: z.number().int().positive().optional(),
     quantity: z.number().int().positive(),
+    size: z.string().trim().min(1).max(64).optional().openapi({
+      description: 'Ukuran yang dipilih untuk produk (abaikan untuk bundle).',
+      example: 'L',
+    }),
+    bundleSelections: z
+      .array(
+        z.object({
+          productId: z.number().int().positive(),
+          size: z
+            .string()
+            .trim()
+            .min(1)
+            .max(64)
+            .optional()
+            .openapi({ description: 'Ukuran yang dipilih' }),
+        }),
+      )
+      .optional()
+      .openapi({
+        description:
+          'Pilihan ukuran untuk setiap produk yang termasuk di dalam bundle.',
+      }),
   })
   .superRefine((value, ctx) => {
     const hasProduct = typeof value.productId === 'number';
@@ -114,18 +151,18 @@ export const createOrderBodySchema = z
 
 export const paymentInitiationSchema = z
   .object({
-    provider: z.literal('Midtrans'),
+    provider: z.string().openapi({ example: 'DummyPay' }),
     transactionId: z.string().optional(),
     transactionToken: z.string().optional(),
-    redirectUrl: z.url().optional(),
+    status: z.enum(['PENDING', 'PAID']).optional(),
+    checkoutUrl: z.string().url().optional(),
+    checkoutPath: z.string().optional(),
+    expiresAt: z.string().optional(),
+    instructions: z.string().optional(),
     metadata: z.record(z.string(), z.any()).optional(),
-    todo: z
-      .string()
-      .optional()
-      .default('Integrasi Midtrans belum diimplementasikan.'),
   })
   .nullable()
-  .openapi('MidtransPaymentInitiation');
+  .openapi('PaymentInitiation');
 
 export const createOrderSuccessSchema = createSuccessResponse(
   z.object({

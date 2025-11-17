@@ -2,6 +2,11 @@ import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { db, schema } from '../db/db';
 import type { UserDepartmentEnum } from '../schemas';
+import {
+  normalizeBundleSelections,
+  type BundleSelectionInput,
+  type BundleSelectionRecord,
+} from './bundleSelection';
 
 type OrderRow = InferSelectModel<typeof schema.ordersTable>;
 type OrderItemRow = InferSelectModel<typeof schema.orderItemsTable>;
@@ -13,6 +18,8 @@ export type CreateOrderItemInput = {
   productId?: number;
   bundleId?: number;
   quantity: number;
+  size?: string | null;
+  bundleSelections?: BundleSelectionInput[];
 };
 
 export type CreateOrderPayload = {
@@ -48,7 +55,28 @@ function assertValidItems(items: CreateOrderItemInput[]) {
     if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
       throw new Error('Jumlah item harus berupa bilangan bulat positif.');
     }
+    if (
+      item.bundleSelections &&
+      item.bundleSelections.some(
+        (selection) => typeof selection?.productId !== 'number',
+      )
+    ) {
+      throw new Error('Pilihan ukuran bundle tidak valid.');
+    }
   }
+}
+
+async function clearUserCartItems(userId: number) {
+  const [cart] = await db
+    .select()
+    .from(schema.cartsTable)
+    .where(eq(schema.cartsTable.user_id, userId));
+
+  if (!cart) return;
+
+  await db
+    .delete(schema.cartItemsTable)
+    .where(eq(schema.cartItemsTable.cart_id, cart.id));
 }
 
 async function fetchProductsMap(
@@ -307,34 +335,73 @@ export async function createOrder(
 }> {
   assertValidItems(payload.items);
 
-  const productIds = payload.items
-    .map((item) => item.productId ?? undefined)
-    .filter((id): id is number => typeof id === 'number');
   const bundleIds = payload.items
     .map((item) => item.bundleId ?? undefined)
     .filter((id): id is number => typeof id === 'number');
 
-  const [productsMap, bundlesMap] = await Promise.all([
-    fetchProductsMap(productIds),
-    fetchBundlesMap(bundleIds),
-  ]);
+  const bundlesMap = await fetchBundlesMap(bundleIds);
+
+  const productIdSet = new Set<number>(
+    payload.items
+      .map((item) => item.productId ?? undefined)
+      .filter((id): id is number => typeof id === 'number'),
+  );
+
+  for (const bundle of bundlesMap.values()) {
+    const bundleItems = Array.isArray(bundle.bundle_items)
+      ? (bundle.bundle_items as Array<{ product_id: number }>)
+      : [];
+    for (const bundleItem of bundleItems) {
+      productIdSet.add(bundleItem.product_id);
+    }
+  }
+
+  const productsMap = await fetchProductsMap(Array.from(productIdSet));
 
   const orderItems: Array<{
     product_id: number | null;
     bundle_id: number | null;
     quantity: number;
     unit_price: number;
+    selected_size: string | null;
+    selected_bundle_items: BundleSelectionRecord[];
   }> = payload.items.map((item) => {
     if (item.productId) {
       const product = productsMap.get(item.productId);
       if (!product) {
         throw new Error(`Produk dengan ID ${item.productId} tidak ditemukan.`);
       }
+      const availableSizes = Array.isArray(product.available_sizes)
+        ? product.available_sizes
+        : [];
+      const trimmedSize = typeof item.size === 'string' ? item.size.trim() : '';
+      let selectedSize: string | null = null;
+      if (availableSizes.length > 0) {
+        const normalizedInput = trimmedSize.toUpperCase();
+        if (!normalizedInput) {
+          throw new Error(
+            `Pilih ukuran untuk produk ${product.name ?? product.id}.`,
+          );
+        }
+        const matchedSize = availableSizes.find(
+          (option) => option.toUpperCase() === normalizedInput,
+        );
+        if (!matchedSize) {
+          throw new Error(
+            `Ukuran ${item.size} tidak tersedia untuk produk ${
+              product.name ?? product.id
+            }.`,
+          );
+        }
+        selectedSize = matchedSize;
+      }
       return {
         product_id: product.id,
         bundle_id: null,
         quantity: item.quantity,
         unit_price: Number(product.price),
+        selected_size: selectedSize,
+        selected_bundle_items: [],
       };
     }
 
@@ -343,11 +410,18 @@ export async function createOrder(
       if (!bundle) {
         throw new Error(`Bundle dengan ID ${item.bundleId} tidak ditemukan.`);
       }
+      const normalizedSelections = normalizeBundleSelections({
+        bundle,
+        productsMap,
+        selections: item.bundleSelections,
+      });
       return {
         product_id: null,
         bundle_id: bundle.id,
         quantity: item.quantity,
         unit_price: Number(bundle.price),
+        selected_size: null,
+        selected_bundle_items: normalizedSelections,
       };
     }
 
@@ -390,6 +464,8 @@ export async function createOrder(
     throw new Error('Pesanan tidak berhasil dibuat.');
   }
 
+  await clearUserCartItems(userId);
+
   const orderWithItems = await buildOrderWithItems(createdOrder);
 
   const payment = await initiateMidtransTransaction(orderWithItems);
@@ -401,20 +477,35 @@ export async function createOrder(
 }
 
 export async function initiateMidtransTransaction(
-  _order: OrderWithItems,
+  order: OrderWithItems,
 ): Promise<{
-  provider: 'Midtrans';
+  provider: string;
   transactionId?: string;
   transactionToken?: string;
-  redirectUrl?: string;
-  todo: string;
+  status?: string;
+  checkoutUrl?: string;
+  checkoutPath?: string;
+  expiresAt?: string;
+  instructions?: string;
 } | null> {
-  // TODO: Panggil Midtrans Snap API untuk membuat transaksi pembayaran.
-  // TODO: Simpan transactionId / token yang diterima dari Midtrans.
-  // TODO: Kembalikan data yang dibutuhkan frontend (misal redirectUrl atau snapToken).
+  const token = `dummy-${order.id}-${Date.now()}`;
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  const baseUrl =
+    process.env.DUMMY_PAYMENT_BASE_URL ??
+    process.env.FRONTEND_URL ??
+    'http://localhost:5173';
+  const checkoutPath = `/payment/dummy?orderId=${order.id}&token=${token}`;
+
   return {
-    provider: 'Midtrans',
-    todo: 'Integrasi Midtrans belum diimplementasikan.',
+    provider: 'DummyPay',
+    transactionId: token,
+    transactionToken: token,
+    status: 'PENDING',
+    checkoutUrl: new URL(checkoutPath, baseUrl).toString(),
+    checkoutPath,
+    expiresAt,
+    instructions:
+      'Gunakan halaman pembayaran dummy untuk mensimulasikan pembayaran dan selesaikan order Anda.',
   };
 }
 

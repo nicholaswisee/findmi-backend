@@ -44,6 +44,7 @@ export const createProductController = controller(async (c: Context) => {
     stock: number;
     category?: UserDepartmentEnum;
     image_urls?: string[];
+    available_sizes?: string[];
   }>();
 
   if (!body.name || !body.price || body.stock === undefined)

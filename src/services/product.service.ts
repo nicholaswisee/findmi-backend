@@ -6,6 +6,13 @@ import type { UserDepartmentEnum } from '../schemas';
 // Import the enum type for category if available, or extract it from your schema
 
 // Import the enum type for category from your schema
+function normalizeSizes(sizes?: string[]) {
+  if (!Array.isArray(sizes)) return [];
+  return sizes
+    .map((size) => (typeof size === 'string' ? size.trim() : ''))
+    .filter((size): size is string => size.length > 0);
+}
+
 function buildProductWhereClause({
   category,
   search,
@@ -103,6 +110,7 @@ export async function createProduct({
   stock,
   category,
   image_urls,
+  available_sizes,
 }: {
   name: string;
   price: number;
@@ -110,6 +118,7 @@ export async function createProduct({
   stock: number;
   category?: UserDepartmentEnum;
   image_urls?: string[];
+  available_sizes?: string[];
 }) {
   const [product] = await db
     .insert(schema.productsTable)
@@ -119,6 +128,7 @@ export async function createProduct({
       category: (category || 'none') as UserDepartmentEnum,
       description: description || '',
       image_urls: image_urls && image_urls.length > 0 ? image_urls : [],
+      available_sizes: normalizeSizes(available_sizes),
       remaining_stock: stock,
     })
     .returning({
@@ -128,6 +138,7 @@ export async function createProduct({
       category: schema.productsTable.category,
       description: schema.productsTable.description,
       image_urls: schema.productsTable.image_urls,
+      available_sizes: schema.productsTable.available_sizes,
       remaining_stock: schema.productsTable.remaining_stock,
     });
 
@@ -148,6 +159,7 @@ export async function updateProduct(
     stock: number;
     category?: UserDepartmentEnum;
     image_urls?: string[];
+    available_sizes?: string[];
   }>,
 ) {
   const [existingProduct] = await db
@@ -166,6 +178,8 @@ export async function updateProduct(
   if (data.stock !== undefined) updateData.remaining_stock = data.stock;
   if (data.category !== undefined) updateData.category = data.category;
   if (data.image_urls !== undefined) updateData.image_urls = data.image_urls;
+  if (data.available_sizes !== undefined)
+    updateData.available_sizes = normalizeSizes(data.available_sizes);
 
   const [updatedProduct] = await db
     .update(schema.productsTable)
@@ -178,6 +192,7 @@ export async function updateProduct(
       category: schema.productsTable.category,
       description: schema.productsTable.description,
       image_urls: schema.productsTable.image_urls,
+      available_sizes: schema.productsTable.available_sizes,
       remaining_stock: schema.productsTable.remaining_stock,
     });
 

@@ -132,6 +132,10 @@ export const productsTable = pgTable('products', {
     .$type<string[]>()
     .notNull()
     .default(sql`'[]'::jsonb`),
+  available_sizes: jsonb('available_sizes')
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   remaining_stock: numeric('remaining_stock', { mode: 'number' })
     .notNull()
     .default(0),
@@ -142,6 +146,11 @@ export type BundleItem = {
   amount: number;
 };
 export type BundleItemsJSON = BundleItem[];
+export type BundleProductSelection = {
+  product_id: number;
+  size: string;
+};
+export type BundleProductSelectionsJSON = BundleProductSelection[];
 
 export const bundlesTable = pgTable('bundles', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
@@ -180,6 +189,11 @@ export const cartItemsTable = pgTable(
     bundle_id: integer('bundle_id').references(() => bundlesTable.id, {
       onDelete: 'cascade',
     }),
+    selected_size: varchar('selected_size', { length: 64 }),
+    selected_bundle_items: jsonb('selected_bundle_items')
+      .$type<BundleProductSelectionsJSON>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     quantity: integer('quantity').notNull().default(1),
   },
   (table) => [
@@ -232,6 +246,11 @@ export const orderItemsTable = pgTable(
     unit_price: numeric('unit_price', { mode: 'number' })
       .notNull()
       .default(0.0),
+    selected_size: varchar('selected_size', { length: 64 }),
+    selected_bundle_items: jsonb('selected_bundle_items')
+      .$type<BundleProductSelectionsJSON>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
   },
   (table) => [
     check(

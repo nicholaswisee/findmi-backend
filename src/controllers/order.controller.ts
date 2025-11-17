@@ -9,6 +9,7 @@ import {
   handleMidtransNotification,
   getAllOrders,
   updateOrderAdminFields,
+  markOrderPaid,
 } from '../services/order.service';
 import type { UserDepartmentEnum } from '../schemas';
 
@@ -17,7 +18,13 @@ export const createOrderController = controller(async (c: Context) => {
   if (!userId) return errorResponse(c, 'Tidak memiliki akses.', 401);
 
   const body = await c.req.json<{
-    items: Array<{ productId?: number; bundleId?: number; quantity: number }>;
+    items: Array<{
+      productId?: number;
+      bundleId?: number;
+      quantity: number;
+      size?: string | null;
+      bundleSelections?: Array<{ productId: number; size?: string | null }>;
+    }>;
   }>();
 
   const result = await createOrder(userId, { items: body.items });
@@ -25,9 +32,30 @@ export const createOrderController = controller(async (c: Context) => {
   return successResponse(
     c,
     result,
-    'Pesanan berhasil dibuat. Integrasi Midtrans masih dalam pengembangan.',
+    'Pesanan berhasil dibuat. Lanjutkan proses pembayaran.',
     201,
   );
+});
+
+export const completeDummyPaymentController = controller(async (c: Context) => {
+  const userId = getUserId(c);
+  if (!userId) return errorResponse(c, 'Tidak memiliki akses.', 401);
+
+  const orderId = Number(c.req.param('id'));
+  if (!Number.isInteger(orderId) || orderId <= 0) {
+    return errorResponse(c, 'ID pesanan tidak valid.', 400);
+  }
+
+  const existing = await getOrderForUser(orderId, userId);
+  if (!existing) {
+    return errorResponse(c, 'Pesanan tidak ditemukan.', 404);
+  }
+
+  const result = await markOrderPaid(orderId, {
+    transactionId: existing.transaction_id ?? `dummy-${Date.now()}`,
+  });
+
+  return successResponse(c, result, 'Pembayaran dummy berhasil diproses.');
 });
 
 export const getMyOrdersController = controller(async (c: Context) => {

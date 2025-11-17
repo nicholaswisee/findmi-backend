@@ -1,6 +1,11 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { db, schema } from '../db/db';
+import {
+  normalizeBundleSelections,
+  type BundleSelectionInput,
+  type BundleSelectionRecord,
+} from './bundleSelection';
 
 type CartRow = InferSelectModel<typeof schema.cartsTable>;
 type CartItemRow = InferSelectModel<typeof schema.cartItemsTable>;
@@ -137,9 +142,15 @@ export async function getCartByUserId(userId: number): Promise<CartWithItems> {
 
 export async function addItemToCart(
   userId: number,
-  data: { productId?: number; bundleId?: number; quantity: number },
+  data: {
+    productId?: number;
+    bundleId?: number;
+    quantity: number;
+    size?: string;
+    bundleSelections?: BundleSelectionInput[];
+  },
 ): Promise<CartWithItems> {
-  const { productId, bundleId, quantity } = data;
+  const { productId, bundleId, quantity, size, bundleSelections } = data;
 
   if ((!productId && !bundleId) || (productId && bundleId)) {
     throw new Error(
@@ -153,6 +164,9 @@ export async function addItemToCart(
 
   const cart = await ensureCart(userId);
 
+  let normalizedSize: string | null = null;
+  let normalizedBundleSelections: BundleSelectionRecord[] = [];
+
   if (productId) {
     const [product] = await db
       .select()
@@ -160,6 +174,23 @@ export async function addItemToCart(
       .where(eq(schema.productsTable.id, productId));
 
     if (!product) throw new Error('Produk tidak ditemukan.');
+
+    const availableSizes = Array.isArray(product.available_sizes)
+      ? product.available_sizes
+      : [];
+    if (availableSizes.length > 0) {
+      const trimmed = typeof size === 'string' ? size.trim().toUpperCase() : '';
+      if (!trimmed) {
+        throw new Error('Pilih ukuran untuk produk ini.');
+      }
+      const matchedSize = availableSizes.find(
+        (itemSize) => itemSize.toUpperCase() === trimmed,
+      );
+      if (!matchedSize) {
+        throw new Error('Ukuran tidak tersedia untuk produk ini.');
+      }
+      normalizedSize = matchedSize;
+    }
   }
 
   if (bundleId) {
@@ -169,19 +200,47 @@ export async function addItemToCart(
       .where(eq(schema.bundlesTable.id, bundleId));
 
     if (!bundle) throw new Error('Bundle tidak ditemukan.');
+
+    const bundleItems = Array.isArray(bundle.bundle_items)
+      ? (bundle.bundle_items as Array<{ product_id: number }>)
+      : [];
+    const bundleProductIds = bundleItems.map((item) => item.product_id);
+    const bundleProductsMap = await fetchProductsMap(bundleProductIds);
+
+    normalizedBundleSelections = normalizeBundleSelections({
+      bundle,
+      productsMap: bundleProductsMap,
+      selections: bundleSelections,
+    });
   }
+
+  const sizeCondition =
+    normalizedSize === null
+      ? isNull(schema.cartItemsTable.selected_size)
+      : eq(schema.cartItemsTable.selected_size, normalizedSize);
+
+  const bundleSelectionCondition = eq(
+    schema.cartItemsTable.selected_bundle_items,
+    normalizedBundleSelections,
+  );
+
+  const productMatch = productId
+    ? and(
+        eq(schema.cartItemsTable.product_id, productId),
+        sizeCondition,
+        isNull(schema.cartItemsTable.bundle_id),
+        bundleSelectionCondition,
+      )
+    : and(
+        eq(schema.cartItemsTable.bundle_id, bundleId!),
+        isNull(schema.cartItemsTable.product_id),
+        bundleSelectionCondition,
+      );
 
   const [existingItem] = await db
     .select()
     .from(schema.cartItemsTable)
-    .where(
-      and(
-        eq(schema.cartItemsTable.cart_id, cart.id),
-        productId
-          ? eq(schema.cartItemsTable.product_id, productId)
-          : eq(schema.cartItemsTable.bundle_id, bundleId!),
-      ),
-    );
+    .where(and(eq(schema.cartItemsTable.cart_id, cart.id), productMatch));
 
   if (existingItem) {
     await db
@@ -193,6 +252,8 @@ export async function addItemToCart(
       cart_id: cart.id,
       product_id: productId ?? null,
       bundle_id: bundleId ?? null,
+      selected_size: normalizedSize,
+      selected_bundle_items: normalizedBundleSelections,
       quantity,
     });
   }

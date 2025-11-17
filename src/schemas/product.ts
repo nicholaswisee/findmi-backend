@@ -18,6 +18,11 @@ export const productSchema = z
       ],
       description: 'Daftar URL gambar produk.',
     }),
+    available_sizes: z.array(z.string().min(1)).openapi({
+      description:
+        'Ukuran produk yang tersedia. Kosongkan bila tidak memiliki ukuran.',
+      example: ['S', 'M', 'L'],
+    }),
     remaining_stock: z.number().int().nonnegative().openapi({ example: 50 }),
   })
   .openapi('Product');
@@ -51,6 +56,9 @@ export const createProductBodySchema = z
           'https://cdn.findmi.akumasukitb.com/products/totebag-front.png',
         ],
       }),
+    available_sizes: z.array(z.string().min(1)).optional().openapi({
+      description: 'Daftar ukuran yang dapat dipilih (misal ["S","M","L"]).',
+    }),
   })
   .openapi('CreateProductBody');
 

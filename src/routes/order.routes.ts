@@ -6,6 +6,7 @@ import {
   midtransNotificationController,
   getAllOrdersController,
   updateOrderAdminFieldsController,
+  completeDummyPaymentController,
 } from '../controllers/order.controller';
 import {
   createOrderBodySchema,
@@ -218,6 +219,39 @@ registerOrderRoute(
     },
   },
   updateOrderAdminFieldsController as OrderHandler,
+);
+
+registerOrderRoute(
+  {
+    method: 'post',
+    path: '/{id}/dummy-payment',
+    summary: 'Complete dummy payment for an order',
+    tags: ['Order'],
+    request: {
+      params: z.object({ id: z.coerce.number().int().positive() }),
+    },
+    responses: {
+      200: {
+        description: 'Dummy payment completed',
+        content: {
+          'application/json': { schema: getOrderSuccessSchema },
+        },
+      },
+      400: {
+        description: 'Bad request',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      404: {
+        description: 'Order not found',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+    },
+  },
+  completeDummyPaymentController as OrderHandler,
 );
 
 registerOrderRoute(

@@ -27,6 +27,16 @@ function pick<T>(arr: ReadonlyArray<T>): T {
   return arr[randInt(0, arr.length - 1)];
 }
 
+function randomSizes(): string[] {
+  if (Math.random() < 0.4) return [];
+  const count = randInt(2, sizeOptions.length);
+  const shuffled = [...sizeOptions].sort(() => Math.random() - 0.5);
+  const pickedSizes = shuffled.slice(0, count);
+  return pickedSizes.sort(
+    (a, b) => sizeOptions.indexOf(a) - sizeOptions.indexOf(b),
+  );
+}
+
 const departments = [
   'Ketua AMI',
   'Kesekjenan',
@@ -96,6 +106,7 @@ const roles = ['user', 'admin', 'subadmin'] as const;
 
 const paymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'] as const;
 const paymentMethods = ['Manual', 'Xendit', 'Midtrans', 'GoPay'] as const;
+const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
 
 const DEFAULT_ADMIN_NIM = process.env.SEED_ADMIN_NIM ?? '13524034';
 const DEFAULT_ADMIN_PASSWORD =
@@ -278,20 +289,34 @@ async function seedAdminUser() {
   return userId;
 }
 
-async function seedProducts() {
+type SeedProductRecord = {
+  id: number;
+  available_sizes: string[];
+};
+
+async function seedProducts(): Promise<SeedProductRecord[]> {
   console.log(`Seeding ${NUM_PRODUCTS} products...`);
   const productsValues = Array.from({ length: NUM_PRODUCTS }, (_, i) => ({
     name: `Product ${i + 1}`,
     description: `Description for product ${i + 1}`,
     price: randInt(10, 200) * 1000,
     category: pick(departments),
-    image_urls: [`https://example.com/product-${i + 1}.png`],
+    image_urls: [`https://picsum.photos/200/300`],
+    available_sizes: randomSizes(),
   }));
   const inserted = await db
     .insert(schema.productsTable)
     .values(productsValues)
-    .returning({ id: schema.productsTable.id });
-  return inserted.map((r) => r.id);
+    .returning({
+      id: schema.productsTable.id,
+      available_sizes: schema.productsTable.available_sizes,
+    });
+  return inserted.map((record) => ({
+    id: record.id,
+    available_sizes: Array.isArray(record.available_sizes)
+      ? record.available_sizes
+      : [],
+  }));
 }
 
 async function seedBundles(productIds: number[]) {
@@ -309,7 +334,7 @@ async function seedBundles(productIds: number[]) {
       name: `Bundle ${i + 1}`,
       description: `Bundle description ${i + 1}`,
       bundle_items: bundleItems as any,
-      image_urls: [`https://example.com/bundle-${i + 1}.png`],
+      image_urls: [`https://picsum.photos/200/300`],
       price: randInt(20, 400) * 1000,
       category: pick(departments),
       is_hidden: Math.random() < 0.1,
@@ -336,19 +361,29 @@ async function seedCarts(userIds: number[]) {
 
 async function seedCartItems(
   cartIds: number[],
-  productIds: number[],
+  products: SeedProductRecord[],
   bundleIds: number[],
 ) {
   console.log(`Seeding ${NUM_CART_ITEMS} cart items...`);
   const values = Array.from({ length: NUM_CART_ITEMS }, () => {
     const isProduct = Math.random() < 0.6;
-    const base = { cart_id: pick(cartIds), quantity: randInt(1, 5) } as any;
+    const base = {
+      cart_id: pick(cartIds),
+      quantity: randInt(1, 5),
+      selected_bundle_items: [],
+    } as any;
     if (isProduct) {
-      base.product_id = pick(productIds);
+      const product = pick(products);
+      base.product_id = product.id;
       base.bundle_id = null;
+      base.selected_size =
+        product.available_sizes.length > 0
+          ? pick(product.available_sizes)
+          : null;
     } else {
       base.product_id = null;
       base.bundle_id = pick(bundleIds);
+      base.selected_size = null;
     }
     return base;
   });
@@ -383,7 +418,7 @@ async function seedOrders(userIds: number[]) {
 
 async function seedOrderItems(
   orderIds: number[],
-  productIds: number[],
+  products: SeedProductRecord[],
   bundleIds: number[],
 ) {
   console.log(`Seeding ${NUM_ORDER_ITEMS} order items...`);
@@ -393,13 +428,20 @@ async function seedOrderItems(
       order_id: pick(orderIds),
       quantity: randInt(1, 5),
       unit_price: randInt(10, 300) * 1000,
+      selected_bundle_items: [],
     } as any;
     if (isProduct) {
-      base.product_id = pick(productIds);
+      const product = pick(products);
+      base.product_id = product.id;
       base.bundle_id = null;
+      base.selected_size =
+        product.available_sizes.length > 0
+          ? pick(product.available_sizes)
+          : null;
     } else {
       base.product_id = null;
       base.bundle_id = pick(bundleIds);
+      base.selected_size = null;
     }
     return base;
   });
@@ -419,14 +461,15 @@ async function main() {
     userIds.push(adminUserId);
   }
 
-  const productIds = await seedProducts();
+  const productRecords = await seedProducts();
+  const productIds = productRecords.map((p) => p.id);
   const bundleIds = await seedBundles(productIds);
 
   const cartIds = await seedCarts(userIds);
-  await seedCartItems(cartIds, productIds, bundleIds);
+  await seedCartItems(cartIds, productRecords, bundleIds);
 
   const orderIds = await seedOrders(userIds);
-  await seedOrderItems(orderIds, productIds, bundleIds);
+  await seedOrderItems(orderIds, productRecords, bundleIds);
 
   console.log('Seeding completed.');
 }

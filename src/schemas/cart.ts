@@ -12,6 +12,7 @@ const cartItemProductSchema = productSchema
     description: true,
     image_urls: true,
     remaining_stock: true,
+    available_sizes: true,
   })
   .openapi('CartItemProduct');
 
@@ -46,6 +47,10 @@ export const cartItemSchema = z
       .nullable()
       .optional()
       .openapi({ example: null }),
+    selected_size: z.string().min(1).max(64).nullable().optional().openapi({
+      example: 'L',
+      description: 'Ukuran yang dipilih untuk produk. Null jika tidak berlaku.',
+    }),
     quantity: z.number().int().positive().openapi({ example: 2 }),
     unit_price: z.number().nonnegative().openapi({ example: 149000 }),
     line_total: z.number().nonnegative().openapi({ example: 298000 }),
@@ -55,6 +60,17 @@ export const cartItemSchema = z
     bundle: cartItemBundleSchema.nullable().openapi({
       description: 'Detail bundle jika item merupakan bundle.',
     }),
+    selected_bundle_items: z
+      .array(
+        z.object({
+          product_id: z.number().int().positive(),
+          size: z.string().min(1),
+        }),
+      )
+      .openapi({
+        description:
+          'Pilihan ukuran untuk setiap produk yang ada dalam bundle.',
+      }),
   })
   .openapi('CartItem');
 
@@ -93,6 +109,11 @@ export const addCartItemBodySchema = z
     productId: z.number().int().positive().optional().openapi({ example: 3 }),
     bundleId: z.number().int().positive().optional().openapi({ example: null }),
     quantity: z.number().int().positive().openapi({ example: 2 }),
+    size: z.string().trim().min(1).max(64).optional().openapi({
+      description:
+        'Ukuran produk yang dipilih. Wajib diisi untuk produk dengan variasi ukuran.',
+      example: 'M',
+    }),
   })
   .superRefine((data, ctx) => {
     const hasProduct = typeof data.productId === 'number';
