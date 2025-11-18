@@ -18,7 +18,7 @@ async function bootstrap() {
       {
         fetch: app.fetch,
         port: PORT,
-        hostname: '127.0.0.1',
+        hostname: '0.0.0.0',
       },
       (info) => {
         console.log(`Server running on http://localhost:${info.port}`);
