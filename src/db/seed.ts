@@ -301,7 +301,9 @@ async function seedProducts(): Promise<SeedProductRecord[]> {
     description: `Description for product ${i + 1}`,
     price: randInt(10, 200) * 1000,
     category: pick(departments),
-    image_urls: [`https://picsum.photos/200/300`],
+    image_urls: [
+      `https://i.pinimg.com/736x/b7/73/27/b77327bb3e150b2d21e5a3a4acf2dbcb.jpg`,
+    ],
     available_sizes: randomSizes(),
   }));
   const inserted = await db
@@ -334,7 +336,9 @@ async function seedBundles(productIds: number[]) {
       name: `Bundle ${i + 1}`,
       description: `Bundle description ${i + 1}`,
       bundle_items: bundleItems as any,
-      image_urls: [`https://picsum.photos/200/300`],
+      image_urls: [
+        `https://i.pinimg.com/736x/b7/73/27/b77327bb3e150b2d21e5a3a4acf2dbcb.jpg`,
+      ],
       price: randInt(20, 400) * 1000,
       category: pick(departments),
       is_hidden: Math.random() < 0.1,
