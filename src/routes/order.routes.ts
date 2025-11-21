@@ -37,7 +37,8 @@ const registerOrderRoute = (
 ) => orderRouter.openapi(createRoute(config), handler);
 
 orderRouter.use('*', async (c, next) => {
-  if (c.req.path.startsWith('/midtrans/notifications')) {
+  const path = c.req.path.toLowerCase();
+  if (path.startsWith('/order/midtrans/notifications')) {
     return next();
   }
   return authMiddleware(c, next);

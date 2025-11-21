@@ -8,6 +8,8 @@ import {
   type BundleSelectionInput,
   type BundleSelectionRecord,
 } from './bundleSelection';
+import { getMidtransSnap } from './midtrans';
+import crypto from 'crypto';
 
 type OrderRow = InferSelectModel<typeof schema.ordersTable>;
 type OrderItemRow = InferSelectModel<typeof schema.orderItemsTable>;
@@ -48,6 +50,8 @@ export type OrderWithItems = OrderRow & {
 export type OrderWithUser = OrderWithItems & {
   user: UserRow;
 };
+
+type PaymentStatus = 'Pending' | 'Paid' | 'Failed' | 'Refunded';
 
 const configuredDeliveryFee = Number(process.env.DELIVERY_FEE);
 const DELIVERY_FEE =
@@ -118,6 +122,62 @@ function normalizeDeliveryDetails(
     address,
     notes,
   };
+}
+
+type OrderCustomer = {
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+};
+
+async function getOrderCustomer(userId: number): Promise<OrderCustomer> {
+  const [user] = await db
+    .select()
+    .from(schema.usersTable)
+    .where(eq(schema.usersTable.id, userId));
+
+  if (!user) {
+    throw new Error('Pengguna tidak ditemukan.');
+  }
+
+  const [account] = await db
+    .select({ email: schema.accountsTable.email })
+    .from(schema.accountsTable)
+    .where(eq(schema.accountsTable.user_id, userId));
+
+  return {
+    name: user.name,
+    phone: user.no_wa,
+    email: account?.email ?? null,
+  };
+}
+
+function buildMidtransItems(order: OrderWithItems) {
+  const items = order.items.map((item) => ({
+    id: item.product_id
+      ? `product-${item.product_id}`
+      : `bundle-${item.bundle_id ?? 'unknown'}`,
+    price: Math.round(item.unit_price),
+    quantity: item.quantity,
+    name: (item.product?.name ?? item.bundle?.name ?? 'Item').slice(0, 50),
+    brand: 'FindMi2026',
+    category: item.product?.category ?? item.bundle?.category ?? 'General',
+    merchant_name: 'FindMi2026',
+  }));
+
+  if (order.delivery_fee > 0) {
+    items.push({
+      id: 'delivery-fee',
+      price: Math.round(order.delivery_fee),
+      quantity: 1,
+      name: 'Biaya Pengiriman',
+      brand: 'FindMi2026',
+      category: 'Delivery',
+      merchant_name: 'FindMi2026',
+    });
+  }
+
+  return items;
 }
 
 function assertValidItems(items: CreateOrderItemInput[]) {
@@ -437,8 +497,11 @@ export async function createOrder(
     provider: 'Midtrans';
     transactionId?: string;
     transactionToken?: string;
-    redirectUrl?: string;
-    todo: string;
+    status?: string;
+    checkoutUrl?: string;
+    checkoutPath?: string;
+    expiresAt?: string;
+    instructions?: string;
   } | null;
 }> {
   assertValidItems(payload.items);
@@ -586,10 +649,11 @@ export async function createOrder(
   }
 
   await clearUserCartItems(userId);
+  const customer = await getOrderCustomer(userId);
 
   const orderWithItems = await buildOrderWithItems(createdOrder);
 
-  const payment = await initiateMidtransTransaction(orderWithItems);
+  const payment = await initiateMidtransTransaction(orderWithItems, customer);
 
   return {
     order: orderWithItems,
@@ -599,8 +663,9 @@ export async function createOrder(
 
 export async function initiateMidtransTransaction(
   order: OrderWithItems,
+  customer: OrderCustomer,
 ): Promise<{
-  provider: string;
+  provider: 'Midtrans';
   transactionId?: string;
   transactionToken?: string;
   status?: string;
@@ -609,24 +674,76 @@ export async function initiateMidtransTransaction(
   expiresAt?: string;
   instructions?: string;
 } | null> {
-  const token = `dummy-${order.id}-${Date.now()}`;
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-  const baseUrl =
-    process.env.DUMMY_PAYMENT_BASE_URL ??
-    process.env.FRONTEND_URL ??
-    'http://localhost:5173';
-  const checkoutPath = `/payment/dummy?orderId=${order.id}&token=${token}`;
+  const snap = getMidtransSnap();
+  const orderCode = `AMI-${order.id}-${Date.now()}`;
+  const grossAmount = Math.max(1, Math.round(order.total_amount));
+  const items = buildMidtransItems(order);
+
+  const [firstName, ...restName] = (customer.name || 'Pengguna').split(' ');
+  const lastName = restName.join(' ');
+
+  const phoneNumber =
+    order.delivery_phone?.trim() || customer.phone?.trim() || undefined;
+
+  let transaction;
+  try {
+    transaction = await snap.createTransaction({
+      transaction_details: {
+        order_id: orderCode,
+        gross_amount: grossAmount,
+      },
+      credit_card: {
+        secure: true,
+      },
+      item_details: items,
+      customer_details: {
+        first_name: firstName || 'Pengguna',
+        last_name: lastName,
+        email: customer.email ?? 'no-reply@findmi.local',
+        phone: phoneNumber,
+        billing_address: {
+          first_name: order.delivery_contact_name || customer.name,
+          last_name: lastName,
+          email: customer.email ?? 'no-reply@findmi.local',
+          phone: phoneNumber,
+          address: order.delivery_address || undefined,
+        },
+        shipping_address: {
+          first_name: order.delivery_contact_name || customer.name,
+          last_name: lastName,
+          email: customer.email ?? 'no-reply@findmi.local',
+          phone: phoneNumber,
+          address: order.delivery_address || undefined,
+        },
+      },
+    });
+  } catch (err) {
+    const message =
+      Array.isArray((err as { error_messages?: unknown }).error_messages) &&
+      (err as { error_messages: unknown[] }).error_messages.length > 0
+        ? (err as { error_messages: unknown[] }).error_messages
+            .map((m) => String(m))
+            .join('; ')
+        : (err as Error).message;
+    throw new Error(`Midtrans Snap error: ${message}`);
+  }
+
+  await db
+    .update(schema.ordersTable)
+    .set({
+      transaction_id: transaction.token,
+      updated_at: new Date(),
+    })
+    .where(eq(schema.ordersTable.id, order.id));
 
   return {
-    provider: 'DummyPay',
-    transactionId: token,
-    transactionToken: token,
+    provider: 'Midtrans',
+    transactionId: orderCode,
+    transactionToken: transaction.token,
     status: 'PENDING',
-    checkoutUrl: new URL(checkoutPath, baseUrl).toString(),
-    checkoutPath,
-    expiresAt,
+    checkoutUrl: transaction.redirect_url,
     instructions:
-      'Gunakan halaman pembayaran dummy untuk mensimulasikan pembayaran dan selesaikan order Anda.',
+      'Lanjutkan pembayaran melalui halaman Midtrans. Transaksi Anda akan kedaluwarsa sesuai pengaturan Midtrans.',
   };
 }
 
@@ -715,16 +832,83 @@ export async function updateOrderAdminFields(
 }
 
 export async function handleMidtransNotification(
-  _payload: Record<string, unknown>,
+  payload: Record<string, unknown>,
 ): Promise<{
   received: boolean;
   message: string;
 }> {
-  // TODO: Verifikasi tanda tangan notifikasi Midtrans (signature_key).
-  // TODO: Update status pesanan berdasarkan notifikasi Midtrans.
-  // TODO: Simpan log notifikasi untuk audit trail jika diperlukan.
+  const serverKey = process.env.MIDTRANS_SERVER_KEY;
+  if (!serverKey) {
+    throw new Error('MIDTRANS_SERVER_KEY belum dikonfigurasi.');
+  }
+
+  const orderCode = String(payload.order_id ?? '');
+  const statusCode = String(payload.status_code ?? '');
+  const grossAmount = String(payload.gross_amount ?? '');
+  const signature = String(payload.signature_key ?? '');
+  const transactionStatus = String(
+    payload.transaction_status ?? '',
+  ).toLowerCase();
+  const fraudStatus = String(payload.fraud_status ?? '').toLowerCase();
+  const transactionId = String(payload.transaction_id ?? '');
+
+  if (!orderCode || !statusCode || !grossAmount || !signature) {
+    throw new Error('Notifikasi Midtrans tidak lengkap.');
+  }
+
+  const computedSignature = crypto
+    .createHash('sha512')
+    .update(orderCode + statusCode + grossAmount + serverKey)
+    .digest('hex');
+
+  if (computedSignature !== signature) {
+    throw new Error('Signature Midtrans tidak valid.');
+  }
+
+  const match = /^AMI-(\d+)-/.exec(orderCode);
+  const orderId = match ? Number(match[1]) : NaN;
+  if (!Number.isInteger(orderId)) {
+    throw new Error('order_id Midtrans tidak valid.');
+  }
+
+  const newStatus: PaymentStatus = (() => {
+    if (transactionStatus === 'capture') {
+      return fraudStatus === 'challenge' ? 'Pending' : 'Paid';
+    }
+    if (transactionStatus === 'settlement') return 'Paid';
+    if (transactionStatus === 'pending') return 'Pending';
+    if (
+      transactionStatus === 'refund' ||
+      transactionStatus === 'partial_refund'
+    )
+      return 'Refunded';
+    if (
+      transactionStatus === 'deny' ||
+      transactionStatus === 'cancel' ||
+      transactionStatus === 'expire' ||
+      transactionStatus === 'failure'
+    ) {
+      return 'Failed';
+    }
+    return 'Pending';
+  })();
+
+  const [order] = await db
+    .update(schema.ordersTable)
+    .set({
+      payment_status: newStatus,
+      transaction_id: transactionId || orderCode,
+      updated_at: new Date(),
+    })
+    .where(eq(schema.ordersTable.id, orderId))
+    .returning();
+
+  if (!order) {
+    throw new Error('Pesanan tidak ditemukan untuk notifikasi Midtrans.');
+  }
+
   return {
     received: true,
-    message: 'Notifikasi Midtrans diterima. Implementasi masih TODO.',
+    message: `Status pembayaran diperbarui menjadi ${newStatus}.`,
   };
 }

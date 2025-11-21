@@ -28,6 +28,7 @@
     "drizzle-orm": "^0.44.7",
     "hono": "^4.9.10",
     "hono-rate-limiter": "^0.4.2",
+    "midtrans-client": "^1.4.3",
     "pg": "^8.16.3",
     "postgres": "^3.4.7",
     "zod": "^4.1.12"

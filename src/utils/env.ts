@@ -15,6 +15,9 @@ export function loadEnv() {
     UPLOADS_DIR: z.string().optional(),
     UPLOADS_PUBLIC_PATH: z.string().optional(),
     UPLOADS_BASE_URL: z.string().url().optional(),
+    MIDTRANS_MERCHANT_ID: z.string(),
+    MIDTRANS_CLIENT_KEY: z.string(),
+    MIDTRANS_SERVER_KEY: z.string(),
   });
 
   const parsed = schema.safeParse(process.env);
