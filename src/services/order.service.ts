@@ -1,6 +1,7 @@
 import { and, desc, eq, ilike, inArray, or, sql } from 'drizzle-orm';
 import type { InferSelectModel } from 'drizzle-orm';
 import { db, schema } from '../db/db';
+import type { OrderFulfillmentMethod } from '../db/schema';
 import type { UserDepartmentEnum } from '../schemas';
 import {
   normalizeBundleSelections,
@@ -22,8 +23,17 @@ export type CreateOrderItemInput = {
   bundleSelections?: BundleSelectionInput[];
 };
 
+export type DeliveryDetailsInput = {
+  contactName: string;
+  phone: string;
+  address: string;
+  notes?: string | null;
+};
+
 export type CreateOrderPayload = {
   items: CreateOrderItemInput[];
+  fulfillmentMethod: OrderFulfillmentMethod;
+  deliveryDetails?: DeliveryDetailsInput | null;
 };
 
 type OrderItemWithDetails = OrderItemRow & {
@@ -38,6 +48,77 @@ export type OrderWithItems = OrderRow & {
 export type OrderWithUser = OrderWithItems & {
   user: UserRow;
 };
+
+const configuredDeliveryFee = Number(process.env.DELIVERY_FEE);
+const DELIVERY_FEE =
+  Number.isFinite(configuredDeliveryFee) && configuredDeliveryFee >= 0
+    ? Number(configuredDeliveryFee)
+    : 20000;
+
+function resolveFulfillmentMethod(
+  value?: OrderFulfillmentMethod,
+): OrderFulfillmentMethod {
+  if (value === 'Delivery' || value === 'OTS') {
+    return value;
+  }
+  return 'OTS';
+}
+
+function calculateDeliveryFee(method: OrderFulfillmentMethod): number {
+  return method === 'Delivery' ? DELIVERY_FEE : 0;
+}
+
+function normalizeDeliveryDetails(
+  method: OrderFulfillmentMethod,
+  details?: DeliveryDetailsInput | null,
+): {
+  contactName: string;
+  phone: string;
+  address: string;
+  notes: string;
+} {
+  if (method !== 'Delivery') {
+    return {
+      contactName: '',
+      phone: '',
+      address: '',
+      notes: '',
+    };
+  }
+
+  if (!details) {
+    throw new Error('Informasi pengiriman wajib diisi untuk pesanan Delivery.');
+  }
+
+  const contactName = details.contactName?.trim();
+  const phone = details.phone?.trim();
+  const address = details.address?.trim();
+  const notes = details.notes?.trim() ?? '';
+
+  if (!contactName) {
+    throw new Error('Nama penerima pengiriman wajib diisi.');
+  }
+  if (!phone) {
+    throw new Error('Nomor telepon pengiriman wajib diisi.');
+  }
+  if (!address) {
+    throw new Error('Alamat pengiriman wajib diisi.');
+  }
+
+  if (contactName.length > 255) {
+    throw new Error('Nama penerima maksimal 255 karakter.');
+  }
+  if (phone.length > 64) {
+    throw new Error('Nomor telepon maksimal 64 karakter.');
+  }
+
+  return {
+    contactName,
+    phone,
+    address,
+    notes,
+  };
+}
 
 function assertValidItems(items: CreateOrderItemInput[]) {
   if (items.length === 0) {
@@ -320,6 +401,33 @@ export async function getAllOrders({
   };
 }
 
+export async function getOrderWithUserById(
+  orderId: number,
+): Promise<OrderWithUser | null> {
+  const [row] = await db
+    .select({
+      order: schema.ordersTable,
+      user: schema.usersTable,
+    })
+    .from(schema.ordersTable)
+    .innerJoin(
+      schema.usersTable,
+      eq(schema.usersTable.id, schema.ordersTable.user_id),
+    )
+    .where(eq(schema.ordersTable.id, orderId))
+    .limit(1);
+
+  if (!row) {
+    return null;
+  }
+
+  const orderWithItems = await buildOrderWithItems(row.order);
+  return {
+    ...orderWithItems,
+    user: row.user,
+  };
+}
+
 export async function createOrder(
   userId: number,
   payload: CreateOrderPayload,
@@ -334,6 +442,12 @@ export async function createOrder(
   } | null;
 }> {
   assertValidItems(payload.items);
+  const fulfillmentMethod = resolveFulfillmentMethod(payload.fulfillmentMethod);
+  const deliveryFee = calculateDeliveryFee(fulfillmentMethod);
+  const deliveryDetails = normalizeDeliveryDetails(
+    fulfillmentMethod,
+    payload.deliveryDetails,
+  );
 
   const bundleIds = payload.items
     .map((item) => item.bundleId ?? undefined)
@@ -428,10 +542,11 @@ export async function createOrder(
     throw new Error('Item pesanan tidak valid.');
   });
 
-  const totalAmount = orderItems.reduce(
+  const itemsTotal = orderItems.reduce(
     (acc, item) => acc + item.unit_price * item.quantity,
     0,
   );
+  const totalAmount = itemsTotal + deliveryFee;
 
   let createdOrder: OrderRow | null = null;
 
@@ -443,6 +558,12 @@ export async function createOrder(
         total_amount: totalAmount,
         payment_status: 'Pending',
         payment_method: 'Midtrans',
+        fulfillment_method: fulfillmentMethod,
+        delivery_fee: deliveryFee,
+        delivery_contact_name: deliveryDetails.contactName,
+        delivery_phone: deliveryDetails.phone,
+        delivery_address: deliveryDetails.address,
+        delivery_notes: deliveryDetails.notes,
       })
       .returning();
 

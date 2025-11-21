@@ -93,6 +93,14 @@ export const orderPaymentMethodEnum = pgEnum('payment_method_enum', [
   'GoPay',
 ]);
 
+export const orderFulfillmentMethodEnum = pgEnum('fulfillment_method_enum', [
+  'OTS',
+  'Delivery',
+]);
+
+export type OrderFulfillmentMethod =
+  (typeof orderFulfillmentMethodEnum.enumValues)[number];
+
 export const usersTable = pgTable('users', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   name: varchar('name', { length: 255 }).notNull(),
@@ -225,6 +233,22 @@ export const ordersTable = pgTable('orders', {
   transaction_id: varchar('transaction_id', { length: 255 }),
   admin_note: text('admin_note'),
   is_taken: boolean('is_taken').notNull().default(false),
+  fulfillment_method: orderFulfillmentMethodEnum('fulfillment_method')
+    .notNull()
+    .default('OTS'),
+  delivery_fee: numeric('delivery_fee', { mode: 'number' })
+    .notNull()
+    .default(0),
+  delivery_contact_name: varchar('delivery_contact_name', {
+    length: 255,
+  })
+    .notNull()
+    .default(''),
+  delivery_phone: varchar('delivery_phone', { length: 64 })
+    .notNull()
+    .default(''),
+  delivery_address: text('delivery_address').notNull().default(''),
+  delivery_notes: text('delivery_notes').notNull().default(''),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at').defaultNow().notNull(),
 });

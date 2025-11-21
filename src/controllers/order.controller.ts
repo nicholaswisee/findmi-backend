@@ -10,6 +10,7 @@ import {
   getAllOrders,
   updateOrderAdminFields,
   markOrderPaid,
+  getOrderWithUserById,
 } from '../services/order.service';
 import type { UserDepartmentEnum } from '../schemas';
 
@@ -25,9 +26,20 @@ export const createOrderController = controller(async (c: Context) => {
       size?: string | null;
       bundleSelections?: Array<{ productId: number; size?: string | null }>;
     }>;
+    fulfillmentMethod?: 'OTS' | 'Delivery';
+    deliveryDetails?: {
+      contactName?: string;
+      phone?: string;
+      address?: string;
+      notes?: string | null;
+    };
   }>();
 
-  const result = await createOrder(userId, { items: body.items });
+  const result = await createOrder(userId, {
+    items: body.items,
+    fulfillmentMethod: body.fulfillmentMethod ?? 'OTS',
+    deliveryDetails: body.deliveryDetails,
+  });
 
   return successResponse(
     c,
@@ -121,6 +133,20 @@ export const getAllOrdersController = controller(async (c: Context) => {
   });
 
   return successResponse(c, orders, 'Berhasil mengambil semua pesanan.');
+});
+
+export const getAdminOrderByIdController = controller(async (c: Context) => {
+  const id = Number(c.req.param('id'));
+  if (!Number.isInteger(id) || id <= 0) {
+    return errorResponse(c, 'ID pesanan tidak valid.', 400);
+  }
+
+  const order = await getOrderWithUserById(id);
+  if (!order) {
+    return errorResponse(c, 'Pesanan tidak ditemukan.', 404);
+  }
+
+  return successResponse(c, order, 'Berhasil mengambil pesanan.');
 });
 
 export const updateOrderAdminFieldsController = controller(

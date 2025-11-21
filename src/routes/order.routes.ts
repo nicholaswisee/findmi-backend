@@ -7,6 +7,7 @@ import {
   getAllOrdersController,
   updateOrderAdminFieldsController,
   completeDummyPaymentController,
+  getAdminOrderByIdController,
 } from '../controllers/order.controller';
 import {
   createOrderBodySchema,
@@ -17,6 +18,7 @@ import {
   midtransNotificationSuccessSchema,
   updateOrderAdminBodySchema,
   listAdminOrdersSuccessSchema,
+  getAdminOrderSuccessSchema,
 } from '../schemas/order';
 import { baseErrorSchema } from '../schemas/common/response';
 import { authMiddleware } from '../middlewares/auth.middleware';
@@ -219,6 +221,43 @@ registerOrderRoute(
     },
   },
   updateOrderAdminFieldsController as OrderHandler,
+);
+
+registerOrderRoute(
+  {
+    method: 'get',
+    path: '/admin/{id}',
+    summary: 'Get order detail with buyer info (admin)',
+    tags: ['Order'],
+    request: {
+      params: z.object({ id: z.coerce.number().int().positive() }),
+    },
+    responses: {
+      200: {
+        description: 'Order retrieved',
+        content: {
+          'application/json': { schema: getAdminOrderSuccessSchema },
+        },
+      },
+      400: {
+        description: 'Bad request',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      403: {
+        description: 'Forbidden',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      404: {
+        description: 'Order not found',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+    },
+  },
+  getAdminOrderByIdController as OrderHandler,
 );
 
 registerOrderRoute(

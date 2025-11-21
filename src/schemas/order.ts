@@ -16,6 +16,11 @@ export const orderPaymentMethodEnum = z.enum(['Manual', 'Midtrans']).openapi({
   example: 'Midtrans',
 });
 
+export const orderFulfillmentMethodEnum = z.enum(['OTS', 'Delivery']).openapi({
+  description: 'Metode pemenuhan pesanan (ambil di tempat atau kirim).',
+  example: 'OTS',
+});
+
 export const orderSchema = z.object({
   id: z.number().int(),
   user_id: z.number().int(),
@@ -25,6 +30,12 @@ export const orderSchema = z.object({
   transaction_id: z.string().nullable().optional(),
   admin_note: z.string().nullable().optional(),
   is_taken: z.boolean().default(false),
+  fulfillment_method: orderFulfillmentMethodEnum,
+  delivery_fee: z.string(),
+  delivery_contact_name: z.string().nullable(),
+  delivery_phone: z.string().nullable(),
+  delivery_address: z.string().nullable(),
+  delivery_notes: z.string().nullable(),
   created_at: z.iso.datetime(),
   updated_at: z.iso.datetime(),
 });
@@ -146,6 +157,26 @@ export const createOrderItemBodySchema = z
 export const createOrderBodySchema = z
   .object({
     items: z.array(createOrderItemBodySchema).min(1),
+    fulfillmentMethod: orderFulfillmentMethodEnum,
+    deliveryDetails: z
+      .object({
+        contactName: z.string().trim().min(1).max(255),
+        phone: z.string().trim().min(5).max(64),
+        address: z.string().trim().min(5),
+        notes: z.string().trim().max(500).optional(),
+      })
+      .optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.fulfillmentMethod === 'Delivery') {
+      if (!value.deliveryDetails) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Delivery details wajib diisi untuk pengiriman.',
+          path: ['deliveryDetails'],
+        });
+      }
+    }
   })
   .openapi('CreateOrderBody');
 
@@ -193,6 +224,10 @@ export const listAdminOrdersSuccessSchema = createSuccessResponse(
 
 export const getOrderSuccessSchema =
   createSuccessResponse(orderWithItemsSchema).openapi('GetOrderSuccess');
+
+export const getAdminOrderSuccessSchema = createSuccessResponse(
+  orderWithUserSchema,
+).openapi('GetAdminOrderSuccess');
 
 export const midtransNotificationBodySchema = z
   .record(z.string(), z.any())

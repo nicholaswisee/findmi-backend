@@ -107,6 +107,11 @@ const roles = ['user', 'admin', 'subadmin'] as const;
 const paymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'] as const;
 const paymentMethods = ['Manual', 'Xendit', 'Midtrans', 'GoPay'] as const;
 const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
+const deliveryFeeConfigured = Number(process.env.DELIVERY_FEE);
+const DELIVERY_FEE =
+  Number.isFinite(deliveryFeeConfigured) && deliveryFeeConfigured >= 0
+    ? Number(deliveryFeeConfigured)
+    : 20000;
 
 const DEFAULT_ADMIN_NIM = process.env.SEED_ADMIN_NIM ?? '13524034';
 const DEFAULT_ADMIN_PASSWORD =
@@ -403,12 +408,33 @@ async function seedOrders(userIds: number[]) {
       payment_status === 'Paid' || Math.random() < 0.4
         ? `tx_${createdAt.getTime()}_${randInt(1000, 9999)}`
         : null;
+    const fulfillment_method = Math.random() < 0.3 ? 'Delivery' : 'OTS';
+    const delivery_fee = fulfillment_method === 'Delivery' ? DELIVERY_FEE : 0;
+    const delivery_contact_name =
+      fulfillment_method === 'Delivery' ? `Recipient ${randInt(1, 999)}` : '';
+    const delivery_phone =
+      fulfillment_method === 'Delivery'
+        ? `08${randInt(111111111, 999999999)}`
+        : '';
+    const delivery_address =
+      fulfillment_method === 'Delivery'
+        ? `${randInt(1, 50)} Jalan Contoh No. ${randInt(1, 120)}`
+        : '';
+    const delivery_notes =
+      fulfillment_method === 'Delivery' ? 'Tinggalkan di pos satpam.' : '';
+    const base_total = randInt(30, 800) * 1000;
     return {
       user_id: pick(userIds),
-      total_amount: randInt(30, 800) * 1000,
+      total_amount: base_total + delivery_fee,
       payment_status,
       payment_method: pick(paymentMethods),
       transaction_id,
+      fulfillment_method,
+      delivery_fee,
+      delivery_contact_name,
+      delivery_phone,
+      delivery_address,
+      delivery_notes,
       created_at: createdAt,
       updated_at: createdAt,
     };
