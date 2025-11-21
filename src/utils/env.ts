@@ -15,6 +15,10 @@ export function loadEnv() {
     UPLOADS_DIR: z.string().optional(),
     UPLOADS_PUBLIC_PATH: z.string().optional(),
     UPLOADS_BASE_URL: z.string().url().optional(),
+    APP_TIMEZONE_OFFSET: z
+      .string()
+      .regex(/^[+-](0\d|1[0-4]):[0-5]\d$/, 'Format offset harus +/-HH:MM')
+      .optional(),
     MIDTRANS_MERCHANT_ID: z.string(),
     MIDTRANS_CLIENT_KEY: z.string(),
     MIDTRANS_SERVER_KEY: z.string(),
