@@ -15,7 +15,8 @@ import orderRouter from './routes/order.routes';
 import uploadRouter from './routes/upload.route';
 import userRouter from './routes/user.routes';
 import analyticsRouter from './routes/analytics.routes';
-import { UPLOADS_DIR, UPLOADS_PUBLIC_PATH } from './constants/storage';
+import { UPLOADS_DIR } from './constants/storage';
+import { stripUploadsPrefix, uploadsRoutePrefix } from './utils/uploads-path';
 
 export const app = new OpenAPIHono({
   defaultHook: (result, c) => {
@@ -54,19 +55,6 @@ app.use(
     credentials: true,
   }),
 );
-
-const uploadsRoutePrefix =
-  UPLOADS_PUBLIC_PATH.endsWith('/') && UPLOADS_PUBLIC_PATH !== '/'
-    ? UPLOADS_PUBLIC_PATH.slice(0, -1)
-    : UPLOADS_PUBLIC_PATH;
-
-const stripUploadsPrefix = (path: string) => {
-  if (path.startsWith(uploadsRoutePrefix)) {
-    const trimmed = path.slice(uploadsRoutePrefix.length);
-    return trimmed.replace(/^\/+/, '');
-  }
-  return path;
-};
 
 app.use(
   `${uploadsRoutePrefix}/*`,

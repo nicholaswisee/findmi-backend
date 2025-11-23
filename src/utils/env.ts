@@ -14,6 +14,7 @@ export function loadEnv() {
     FRONTEND_URL: z.string().optional(),
     UPLOADS_DIR: z.string().optional(),
     UPLOADS_PUBLIC_PATH: z.string().optional(),
+    UPLOADS_SERVER_PORT: z.string().optional(),
     UPLOADS_BASE_URL: z.string().url().optional(),
     APP_TIMEZONE_OFFSET: z
       .string()
