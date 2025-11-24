@@ -10,7 +10,8 @@ export function getMidtransSnap() {
   }
 
   let snap = new Midtrans.Snap({
-    isProduction: isProduction,
+    // isProduction: isProduction,
+    isProduction: true,
     serverKey: process.env.MIDTRANS_SERVER_KEY ?? '',
     clientKey: process.env.MIDTRANS_CLIENT_KEY ?? '',
   });
