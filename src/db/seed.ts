@@ -23,95 +23,95 @@ function randInt(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function pick<T>(arr: ReadonlyArray<T>): T {
-  return arr[randInt(0, arr.length - 1)];
-}
+// function pick<T>(arr: ReadonlyArray<T>): T {
+//   return arr[randInt(0, arr.length - 1)];
+// }
 
-function randomSizes(): string[] {
-  if (Math.random() < 0.4) return [];
-  const count = randInt(2, sizeOptions.length);
-  const shuffled = [...sizeOptions].sort(() => Math.random() - 0.5);
-  const pickedSizes = shuffled.slice(0, count);
-  return pickedSizes.sort(
-    (a, b) => sizeOptions.indexOf(a) - sizeOptions.indexOf(b),
-  );
-}
+// function randomSizes(): string[] {
+//   if (Math.random() < 0.4) return [];
+//   const count = randInt(2, sizeOptions.length);
+//   const shuffled = [...sizeOptions].sort(() => Math.random() - 0.5);
+//   const pickedSizes = shuffled.slice(0, count);
+//   return pickedSizes.sort(
+//     (a, b) => sizeOptions.indexOf(a) - sizeOptions.indexOf(b),
+//   );
+// }
 
-const departments = [
-  'Ketua AMI',
-  'Kesekjenan',
-  'Manajemen Personalia',
-  'Materi dan Metode',
-  'Relasi',
-  'ITB Day',
-  'Paguyuban Membangun',
-  'Diseminasi',
-  'Kreatif',
-  'Fundraising',
-  'Operasional',
-  'Perangkat Lapangan Utama',
-  'IT',
-  'Panitia',
-  'none',
-] as const;
+// const departments = [
+//   'Ketua AMI',
+//   'Kesekjenan',
+//   'Manajemen Personalia',
+//   'Materi dan Metode',
+//   'Relasi',
+//   'ITB Day',
+//   'Paguyuban Membangun',
+//   'Diseminasi',
+//   'Kreatif',
+//   'Fundraising',
+//   'Operasional',
+//   'Perangkat Lapangan Utama',
+//   'IT',
+//   'Panitia',
+//   'none',
+// ] as const;
 
-const divisions = [
-  'Sekretaris',
-  'Bendahara',
-  'Sekretaris & Bendahara',
-  'Perizinan',
-  'MSDM',
-  'PSDM',
-  'Pengawasan',
-  'Eksekusi',
-  'Lapangan',
-  'Tour',
-  'Event Organizer',
-  'Exhibition',
-  'Pre-Event',
-  'Intrakampus',
-  'Ekstrakampus',
-  'Grafis',
-  'Dokumentasi',
-  'Publikasi',
-  'Musik',
-  'Properti',
-  'Diseminasi Umum',
-  'Diseminasi Khusus',
-  'Roadshow Paguyuban',
-  'Forum Paguyuban',
-  'Sponsorship',
-  'Entrepreneurship',
-  'Logistik',
-  'Produksi',
-  'Akomodasi dan Transportasi',
-  'IT',
-  'Panitia',
-  'none',
-] as const;
+// const divisions = [
+//   'Sekretaris',
+//   'Bendahara',
+//   'Sekretaris & Bendahara',
+//   'Perizinan',
+//   'MSDM',
+//   'PSDM',
+//   'Pengawasan',
+//   'Eksekusi',
+//   'Lapangan',
+//   'Tour',
+//   'Event Organizer',
+//   'Exhibition',
+//   'Pre-Event',
+//   'Intrakampus',
+//   'Ekstrakampus',
+//   'Grafis',
+//   'Dokumentasi',
+//   'Publikasi',
+//   'Musik',
+//   'Properti',
+//   'Diseminasi Umum',
+//   'Diseminasi Khusus',
+//   'Roadshow Paguyuban',
+//   'Forum Paguyuban',
+//   'Sponsorship',
+//   'Entrepreneurship',
+//   'Logistik',
+//   'Produksi',
+//   'Akomodasi dan Transportasi',
+//   'IT',
+//   'Panitia',
+//   'none',
+// ] as const;
 
-const ranks = [
-  'Ketua',
-  'Kepala Bidang',
-  'Wakil Kepala Bidang',
-  'Kepala Divisi',
-  'Wakil Kepala Divisi',
-  'Kepala Subdivisi',
-  'Wakil Kepala Subdivisi',
-  'Staff',
-  'none',
-] as const;
+// const ranks = [
+//   'Ketua',
+//   'Kepala Bidang',
+//   'Wakil Kepala Bidang',
+//   'Kepala Divisi',
+//   'Wakil Kepala Divisi',
+//   'Kepala Subdivisi',
+//   'Wakil Kepala Subdivisi',
+//   'Staff',
+//   'none',
+// ] as const;
 
-const roles = ['user', 'admin', 'subadmin'] as const;
+// const roles = ['user', 'admin', 'subadmin'] as const;
 
-const paymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'] as const;
-const paymentMethods = ['Manual', 'Xendit', 'Midtrans', 'GoPay'] as const;
+// const paymentStatuses = ['Pending', 'Paid', 'Failed', 'Refunded'] as const;
+// const paymentMethods = ['Manual', 'Xendit', 'Midtrans', 'GoPay'] as const;
 const sizeOptions = ['XS', 'S', 'M', 'L', 'XL', 'XXL'] as const;
 const deliveryFeeConfigured = Number(process.env.DELIVERY_FEE);
-const DELIVERY_FEE =
-  Number.isFinite(deliveryFeeConfigured) && deliveryFeeConfigured >= 0
-    ? Number(deliveryFeeConfigured)
-    : 20000;
+// const DELIVERY_FEE =
+//   Number.isFinite(deliveryFeeConfigured) && deliveryFeeConfigured >= 0
+//     ? Number(deliveryFeeConfigured)
+//     : 20000;
 
 const DEFAULT_ADMIN_NIM = process.env.SEED_ADMIN_NIM ?? '13524034';
 const DEFAULT_ADMIN_PASSWORD =
@@ -120,15 +120,15 @@ const DEFAULT_ADMIN_EMAIL =
   process.env.SEED_ADMIN_EMAIL ?? '13524034@admin.findmi.local';
 const DEFAULT_ADMIN_NAME = process.env.SEED_ADMIN_NAME ?? '13524034';
 
-function randomDateWithinPastWeeks(weeks = 24) {
-  const now = new Date();
-  const totalDays = weeks * 7;
-  const offsetDays = randInt(0, totalDays);
-  const result = new Date(now);
-  result.setDate(now.getDate() - offsetDays);
-  result.setHours(randInt(0, 23), randInt(0, 59), randInt(0, 59), 0);
-  return result;
-}
+// function randomDateWithinPastWeeks(weeks = 24) {
+//   const now = new Date();
+//   const totalDays = weeks * 7;
+//   const offsetDays = randInt(0, totalDays);
+//   const result = new Date(now);
+//   result.setDate(now.getDate() - offsetDays);
+//   result.setHours(randInt(0, 23), randInt(0, 59), randInt(0, 59), 0);
+//   return result;
+// }
 
 async function resetAll() {
   console.log('Truncating tables...');
@@ -137,100 +137,100 @@ async function resetAll() {
   );
 }
 
-async function seedUsers() {
-  console.log(`Seeding ${NUM_USERS} users...`);
-  const usersValues = Array.from({ length: NUM_USERS }, (_, i) => ({
-    name: `User ${i + 1}`,
-    department: pick(departments),
-    division: pick(divisions),
-    rank: pick(ranks),
-    nim: String(13500000 + i),
-    no_wa: `0812${String(34567890 + i).slice(0, 8)}`,
-    line_id: `lineuser${i + 1}`,
-    role: pick(roles),
-  }));
-  const inserted = await db
-    .insert(schema.usersTable)
-    .values(usersValues)
-    .returning({ id: schema.usersTable.id });
-  return inserted.map((r) => r.id);
-}
+// async function seedUsers() {
+//   console.log(`Seeding ${NUM_USERS} users...`);
+//   const usersValues = Array.from({ length: NUM_USERS }, (_, i) => ({
+//     name: `User ${i + 1}`,
+//     department: pick(departments),
+//     division: pick(divisions),
+//     rank: pick(ranks),
+//     nim: String(13500000 + i),
+//     no_wa: `0812${String(34567890 + i).slice(0, 8)}`,
+//     line_id: `lineuser${i + 1}`,
+//     role: pick(roles),
+//   }));
+//   const inserted = await db
+//     .insert(schema.usersTable)
+//     .values(usersValues)
+//     .returning({ id: schema.usersTable.id });
+//   return inserted.map((r) => r.id);
+// }
 
-async function seedAccounts(userIds: number[]) {
-  console.log(`Seeding ${NUM_ACCOUNTS} accounts...`);
-  // Two–three password variants; allow override via env list
-  const envPw = process.env.SEED_PASSWORDS?.split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const PASSWORD_VARIANTS =
-    envPw && envPw.length >= 2
-      ? envPw.slice(0, 3)
-      : ['Password123!', 'Admin!234', 'User@2025'];
+// async function seedAccounts(userIds: number[]) {
+//   console.log(`Seeding ${NUM_ACCOUNTS} accounts...`);
+//   // Two–three password variants; allow override via env list
+//   const envPw = process.env.SEED_PASSWORDS?.split(',')
+//     .map((s) => s.trim())
+//     .filter(Boolean);
+//   const PASSWORD_VARIANTS =
+//     envPw && envPw.length >= 2
+//       ? envPw.slice(0, 3)
+//       : ['Password123!', 'Admin!234', 'User@2025'];
 
-  console.log('Plaintext password variants to try:');
-  PASSWORD_VARIANTS.forEach((p, i) => console.log(`- Variant ${i + 1}: ${p}`));
+//   console.log('Plaintext password variants to try:');
+//   PASSWORD_VARIANTS.forEach((p, i) => console.log(`- Variant ${i + 1}: ${p}`));
 
-  // Pre-hash variants once
-  const hashedByVariant = Object.fromEntries(
-    await Promise.all(
-      PASSWORD_VARIANTS.map(
-        async (p) => [p, await bcrypt.hash(p, 10)] as const,
-      ),
-    ),
-  ) as Record<string, string>;
+//   // Pre-hash variants once
+//   const hashedByVariant = Object.fromEntries(
+//     await Promise.all(
+//       PASSWORD_VARIANTS.map(
+//         async (p) => [p, await bcrypt.hash(p, 10)] as const,
+//       ),
+//     ),
+//   ) as Record<string, string>;
 
-  const localAccountsPlain: Array<{
-    email: string;
-    nim: string;
-    password: string;
-  }> = [];
+//   const localAccountsPlain: Array<{
+//     email: string;
+//     nim: string;
+//     password: string;
+//   }> = [];
 
-  const accountsValues = Array.from({ length: NUM_ACCOUNTS }, (_, i) => {
-    const userId = userIds[i % userIds.length];
+//   const accountsValues = Array.from({ length: NUM_ACCOUNTS }, (_, i) => {
+//     const userId = userIds[i % userIds.length];
 
-    // Ensure first 6 are local and cover all variants; others ~40% local
-    const forceLocal = i < 6;
-    const isLocal = forceLocal || Math.random() < 0.4;
+//     // Ensure first 6 are local and cover all variants; others ~40% local
+//     const forceLocal = i < 6;
+//     const isLocal = forceLocal || Math.random() < 0.4;
 
-    const email = forceLocal
-      ? `testuser${i + 1}@example.com`
-      : `user${i + 1}@example.com`;
+//     const email = forceLocal
+//       ? `testuser${i + 1}@example.com`
+//       : `user${i + 1}@example.com`;
 
-    if (isLocal) {
-      const variant = PASSWORD_VARIANTS[i % PASSWORD_VARIANTS.length];
-      const hash = hashedByVariant[variant];
-      const userId = userIds[i % userIds.length];
-      const nim = String(13500000 + (userId - 1));
-      localAccountsPlain.push({ email, nim, password: variant });
-      return {
-        provider: 'local',
-        provider_id: `local_${i + 1}_${Date.now()}`,
-        email,
-        user_id: userId,
-        password: hash,
-      };
-    }
+//     if (isLocal) {
+//       const variant = PASSWORD_VARIANTS[i % PASSWORD_VARIANTS.length];
+//       const hash = hashedByVariant[variant];
+//       const userId = userIds[i % userIds.length];
+//       const nim = String(13500000 + (userId - 1));
+//       localAccountsPlain.push({ email, nim, password: variant });
+//       return {
+//         provider: 'local',
+//         provider_id: `local_${i + 1}_${Date.now()}`,
+//         email,
+//         user_id: userId,
+//         password: hash,
+//       };
+//     }
 
-    return {
-      provider: 'google',
-      provider_id: `google_${i + 1}_${Date.now()}`,
-      email,
-      user_id: userId,
-      password: null,
-    };
-  });
+//     return {
+//       provider: 'google',
+//       provider_id: `google_${i + 1}_${Date.now()}`,
+//       email,
+//       user_id: userId,
+//       password: null,
+//     };
+//   });
 
-  console.log('Local test accounts (nim, email -> plaintext password)');
-  localAccountsPlain.forEach(({ email, nim, password }) =>
-    console.log(`- ${nim}, ${email} -> ${password}`),
-  );
+//   console.log('Local test accounts (nim, email -> plaintext password)');
+//   localAccountsPlain.forEach(({ email, nim, password }) =>
+//     console.log(`- ${nim}, ${email} -> ${password}`),
+//   );
 
-  const inserted = await db
-    .insert(schema.accountsTable)
-    .values(accountsValues)
-    .returning({ id: schema.accountsTable.id });
-  return inserted.map((r) => r.id);
-}
+//   const inserted = await db
+//     .insert(schema.accountsTable)
+//     .values(accountsValues)
+//     .returning({ id: schema.accountsTable.id });
+//   return inserted.map((r) => r.id);
+// }
 
 async function seedAdminUser() {
   console.log('Ensuring default admin account...');
@@ -294,189 +294,189 @@ async function seedAdminUser() {
   return userId;
 }
 
-type SeedProductRecord = {
-  id: number;
-  available_sizes: string[];
-};
+// type SeedProductRecord = {
+//   id: number;
+//   available_sizes: string[];
+// };
 
-async function seedProducts(): Promise<SeedProductRecord[]> {
-  console.log(`Seeding ${NUM_PRODUCTS} products...`);
-  const productsValues = Array.from({ length: NUM_PRODUCTS }, (_, i) => ({
-    name: `Product ${i + 1}`,
-    description: `Description for product ${i + 1}`,
-    price: randInt(10, 200) * 1000,
-    category: pick(departments),
-    image_urls: [
-      `https://i.pinimg.com/736x/b7/73/27/b77327bb3e150b2d21e5a3a4acf2dbcb.jpg`,
-    ],
-    available_sizes: randomSizes(),
-  }));
-  const inserted = await db
-    .insert(schema.productsTable)
-    .values(productsValues)
-    .returning({
-      id: schema.productsTable.id,
-      available_sizes: schema.productsTable.available_sizes,
-    });
-  return inserted.map((record) => ({
-    id: record.id,
-    available_sizes: Array.isArray(record.available_sizes)
-      ? record.available_sizes
-      : [],
-  }));
-}
+// async function seedProducts(): Promise<SeedProductRecord[]> {
+//   console.log(`Seeding ${NUM_PRODUCTS} products...`);
+//   const productsValues = Array.from({ length: NUM_PRODUCTS }, (_, i) => ({
+//     name: `Product ${i + 1}`,
+//     description: `Description for product ${i + 1}`,
+//     price: randInt(10, 200) * 1000,
+//     category: pick(departments),
+//     image_urls: [
+//       `https://i.pinimg.com/736x/b7/73/27/b77327bb3e150b2d21e5a3a4acf2dbcb.jpg`,
+//     ],
+//     available_sizes: randomSizes(),
+//   }));
+//   const inserted = await db
+//     .insert(schema.productsTable)
+//     .values(productsValues)
+//     .returning({
+//       id: schema.productsTable.id,
+//       available_sizes: schema.productsTable.available_sizes,
+//     });
+//   return inserted.map((record) => ({
+//     id: record.id,
+//     available_sizes: Array.isArray(record.available_sizes)
+//       ? record.available_sizes
+//       : [],
+//   }));
+// }
 
-async function seedBundles(productIds: number[]) {
-  console.log(`Seeding ${NUM_BUNDLES} bundles...`);
-  const bundlesValues = Array.from({ length: NUM_BUNDLES }, (_, i) => {
-    const itemsCount = randInt(2, 4);
-    const picked = new Set<number>();
-    const bundleItems = Array.from({ length: itemsCount }, () => {
-      let pid = pick(productIds);
-      while (picked.has(pid)) pid = pick(productIds);
-      picked.add(pid);
-      return { product_id: pid, amount: randInt(1, 3) };
-    });
-    return {
-      name: `Bundle ${i + 1}`,
-      description: `Bundle description ${i + 1}`,
-      bundle_items: bundleItems as any,
-      image_urls: [
-        `https://i.pinimg.com/736x/b7/73/27/b77327bb3e150b2d21e5a3a4acf2dbcb.jpg`,
-      ],
-      price: randInt(20, 400) * 1000,
-      category: pick(departments),
-      is_hidden: Math.random() < 0.1,
-    };
-  });
-  const inserted = await db
-    .insert(schema.bundlesTable)
-    .values(bundlesValues)
-    .returning({ id: schema.bundlesTable.id });
-  return inserted.map((r) => r.id);
-}
+// async function seedBundles(productIds: number[]) {
+//   console.log(`Seeding ${NUM_BUNDLES} bundles...`);
+//   const bundlesValues = Array.from({ length: NUM_BUNDLES }, (_, i) => {
+//     const itemsCount = randInt(2, 4);
+//     const picked = new Set<number>();
+//     const bundleItems = Array.from({ length: itemsCount }, () => {
+//       let pid = pick(productIds);
+//       while (picked.has(pid)) pid = pick(productIds);
+//       picked.add(pid);
+//       return { product_id: pid, amount: randInt(1, 3) };
+//     });
+//     return {
+//       name: `Bundle ${i + 1}`,
+//       description: `Bundle description ${i + 1}`,
+//       bundle_items: bundleItems as any,
+//       image_urls: [
+//         `https://i.pinimg.com/736x/b7/73/27/b77327bb3e150b2d21e5a3a4acf2dbcb.jpg`,
+//       ],
+//       price: randInt(20, 400) * 1000,
+//       category: pick(departments),
+//       is_hidden: Math.random() < 0.1,
+//     };
+//   });
+//   const inserted = await db
+//     .insert(schema.bundlesTable)
+//     .values(bundlesValues)
+//     .returning({ id: schema.bundlesTable.id });
+//   return inserted.map((r) => r.id);
+// }
 
-async function seedCarts(userIds: number[]) {
-  console.log(`Seeding ${NUM_CARTS} carts...`);
-  const cartValues = Array.from({ length: NUM_CARTS }, (_, i) => ({
-    user_id: userIds[i % userIds.length],
-  }));
-  const inserted = await db
-    .insert(schema.cartsTable)
-    .values(cartValues)
-    .returning({ id: schema.cartsTable.id });
-  return inserted.map((r) => r.id);
-}
+// async function seedCarts(userIds: number[]) {
+//   console.log(`Seeding ${NUM_CARTS} carts...`);
+//   const cartValues = Array.from({ length: NUM_CARTS }, (_, i) => ({
+//     user_id: userIds[i % userIds.length],
+//   }));
+//   const inserted = await db
+//     .insert(schema.cartsTable)
+//     .values(cartValues)
+//     .returning({ id: schema.cartsTable.id });
+//   return inserted.map((r) => r.id);
+// }
 
-async function seedCartItems(
-  cartIds: number[],
-  products: SeedProductRecord[],
-  bundleIds: number[],
-) {
-  console.log(`Seeding ${NUM_CART_ITEMS} cart items...`);
-  const values = Array.from({ length: NUM_CART_ITEMS }, () => {
-    const isProduct = Math.random() < 0.6;
-    const base = {
-      cart_id: pick(cartIds),
-      quantity: randInt(1, 5),
-      selected_bundle_items: [],
-    } as any;
-    if (isProduct) {
-      const product = pick(products);
-      base.product_id = product.id;
-      base.bundle_id = null;
-      base.selected_size =
-        product.available_sizes.length > 0
-          ? pick(product.available_sizes)
-          : null;
-    } else {
-      base.product_id = null;
-      base.bundle_id = pick(bundleIds);
-      base.selected_size = null;
-    }
-    return base;
-  });
-  await db.insert(schema.cartItemsTable).values(values);
-}
+// async function seedCartItems(
+//   cartIds: number[],
+//   products: SeedProductRecord[],
+//   bundleIds: number[],
+// ) {
+//   console.log(`Seeding ${NUM_CART_ITEMS} cart items...`);
+//   const values = Array.from({ length: NUM_CART_ITEMS }, () => {
+//     const isProduct = Math.random() < 0.6;
+//     const base = {
+//       cart_id: pick(cartIds),
+//       quantity: randInt(1, 5),
+//       selected_bundle_items: [],
+//     } as any;
+//     if (isProduct) {
+//       const product = pick(products);
+//       base.product_id = product.id;
+//       base.bundle_id = null;
+//       base.selected_size =
+//         product.available_sizes.length > 0
+//           ? pick(product.available_sizes)
+//           : null;
+//     } else {
+//       base.product_id = null;
+//       base.bundle_id = pick(bundleIds);
+//       base.selected_size = null;
+//     }
+//     return base;
+//   });
+//   await db.insert(schema.cartItemsTable).values(values);
+// }
 
-async function seedOrders(userIds: number[]) {
-  console.log(`Seeding ${NUM_ORDERS} orders...`);
-  const values = Array.from({ length: NUM_ORDERS }, () => {
-    const createdAt = randomDateWithinPastWeeks(26);
-    const payment_status = Math.random() < 0.7 ? 'Paid' : pick(paymentStatuses);
-    const transaction_id =
-      payment_status === 'Paid' || Math.random() < 0.4
-        ? `tx_${createdAt.getTime()}_${randInt(1000, 9999)}`
-        : null;
-    const fulfillment_method = Math.random() < 0.3 ? 'Delivery' : 'OTS';
-    const delivery_fee = fulfillment_method === 'Delivery' ? DELIVERY_FEE : 0;
-    const delivery_contact_name =
-      fulfillment_method === 'Delivery' ? `Recipient ${randInt(1, 999)}` : '';
-    const delivery_phone =
-      fulfillment_method === 'Delivery'
-        ? `08${randInt(111111111, 999999999)}`
-        : '';
-    const delivery_address =
-      fulfillment_method === 'Delivery'
-        ? `${randInt(1, 50)} Jalan Contoh No. ${randInt(1, 120)}`
-        : '';
-    const delivery_notes =
-      fulfillment_method === 'Delivery' ? 'Tinggalkan di pos satpam.' : '';
-    const base_total = randInt(30, 800) * 1000;
-    return {
-      user_id: pick(userIds),
-      total_amount: base_total + delivery_fee,
-      payment_status,
-      payment_method: pick(paymentMethods),
-      transaction_id,
-      fulfillment_method,
-      delivery_fee,
-      delivery_contact_name,
-      delivery_phone,
-      delivery_address,
-      delivery_notes,
-      created_at: createdAt,
-      updated_at: createdAt,
-    };
-  });
-  const inserted = await db
-    .insert(schema.ordersTable)
-    .values(values)
-    .returning({ id: schema.ordersTable.id });
-  return inserted.map((r) => r.id);
-}
+// async function seedOrders(userIds: number[]) {
+//   console.log(`Seeding ${NUM_ORDERS} orders...`);
+//   const values = Array.from({ length: NUM_ORDERS }, () => {
+//     const createdAt = randomDateWithinPastWeeks(26);
+//     const payment_status = Math.random() < 0.7 ? 'Paid' : pick(paymentStatuses);
+//     const transaction_id =
+//       payment_status === 'Paid' || Math.random() < 0.4
+//         ? `tx_${createdAt.getTime()}_${randInt(1000, 9999)}`
+//         : null;
+//     const fulfillment_method = Math.random() < 0.3 ? 'Delivery' : 'OTS';
+//     const delivery_fee = fulfillment_method === 'Delivery' ? DELIVERY_FEE : 0;
+//     const delivery_contact_name =
+//       fulfillment_method === 'Delivery' ? `Recipient ${randInt(1, 999)}` : '';
+//     const delivery_phone =
+//       fulfillment_method === 'Delivery'
+//         ? `08${randInt(111111111, 999999999)}`
+//         : '';
+//     const delivery_address =
+//       fulfillment_method === 'Delivery'
+//         ? `${randInt(1, 50)} Jalan Contoh No. ${randInt(1, 120)}`
+//         : '';
+//     const delivery_notes =
+//       fulfillment_method === 'Delivery' ? 'Tinggalkan di pos satpam.' : '';
+//     const base_total = randInt(30, 800) * 1000;
+//     return {
+//       user_id: pick(userIds),
+//       total_amount: base_total + delivery_fee,
+//       payment_status,
+//       payment_method: pick(paymentMethods),
+//       transaction_id,
+//       fulfillment_method,
+//       delivery_fee,
+//       delivery_contact_name,
+//       delivery_phone,
+//       delivery_address,
+//       delivery_notes,
+//       created_at: createdAt,
+//       updated_at: createdAt,
+//     };
+//   });
+//   const inserted = await db
+//     .insert(schema.ordersTable)
+//     .values(values)
+//     .returning({ id: schema.ordersTable.id });
+//   return inserted.map((r) => r.id);
+// }
 
-async function seedOrderItems(
-  orderIds: number[],
-  products: SeedProductRecord[],
-  bundleIds: number[],
-) {
-  console.log(`Seeding ${NUM_ORDER_ITEMS} order items...`);
-  const values = Array.from({ length: NUM_ORDER_ITEMS }, () => {
-    const isProduct = Math.random() < 0.7;
-    const base = {
-      order_id: pick(orderIds),
-      quantity: randInt(1, 5),
-      unit_price: randInt(10, 300) * 1000,
-      selected_bundle_items: [],
-    } as any;
-    if (isProduct) {
-      const product = pick(products);
-      base.product_id = product.id;
-      base.bundle_id = null;
-      base.selected_size =
-        product.available_sizes.length > 0
-          ? pick(product.available_sizes)
-          : null;
-    } else {
-      base.product_id = null;
-      base.bundle_id = pick(bundleIds);
-      base.selected_size = null;
-    }
-    return base;
-  });
-  await db.insert(schema.orderItemsTable).values(values);
-}
+// async function seedOrderItems(
+//   orderIds: number[],
+//   products: SeedProductRecord[],
+//   bundleIds: number[],
+// ) {
+//   console.log(`Seeding ${NUM_ORDER_ITEMS} order items...`);
+//   const values = Array.from({ length: NUM_ORDER_ITEMS }, () => {
+//     const isProduct = Math.random() < 0.7;
+//     const base = {
+//       order_id: pick(orderIds),
+//       quantity: randInt(1, 5),
+//       unit_price: randInt(10, 300) * 1000,
+//       selected_bundle_items: [],
+//     } as any;
+//     if (isProduct) {
+//       const product = pick(products);
+//       base.product_id = product.id;
+//       base.bundle_id = null;
+//       base.selected_size =
+//         product.available_sizes.length > 0
+//           ? pick(product.available_sizes)
+//           : null;
+//     } else {
+//       base.product_id = null;
+//       base.bundle_id = pick(bundleIds);
+//       base.selected_size = null;
+//     }
+//     return base;
+//   });
+//   await db.insert(schema.orderItemsTable).values(values);
+// }
 
 async function main() {
   const shouldReset = process.env.SEED_RESET !== 'false';
@@ -484,22 +484,22 @@ async function main() {
     await resetAll();
   }
 
-  const userIds = await seedUsers();
-  await seedAccounts(userIds);
-  const adminUserId = await seedAdminUser();
-  if (!userIds.includes(adminUserId)) {
-    userIds.push(adminUserId);
-  }
+  // const userIds = await seedUsers();
+  // await seedAccounts(userIds);
+  await seedAdminUser();
+  // if (!userIds.includes(adminUserId)) {
+  //   userIds.push(adminUserId);
+  // }
 
-  const productRecords = await seedProducts();
-  const productIds = productRecords.map((p) => p.id);
-  const bundleIds = await seedBundles(productIds);
+  // const productRecords = await seedProducts();
+  // const productIds = productRecords.map((p) => p.id);
+  // const bundleIds = await seedBundles(productIds);
 
-  const cartIds = await seedCarts(userIds);
-  await seedCartItems(cartIds, productRecords, bundleIds);
+  // const cartIds = await seedCarts(userIds);
+  // await seedCartItems(cartIds, productRecords, bundleIds);
 
-  const orderIds = await seedOrders(userIds);
-  await seedOrderItems(orderIds, productRecords, bundleIds);
+  // const orderIds = await seedOrders(userIds);
+  // await seedOrderItems(orderIds, productRecords, bundleIds);
 
   console.log('Seeding completed.');
 }
