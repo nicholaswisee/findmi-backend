@@ -9,6 +9,7 @@ export function loadEnv() {
     GOOGLE_CLIENT_ID: z.string(),
     GOOGLE_CLIENT_SECRET: z.string(),
     GOOGLE_REDIRECT_URI: z.string(),
+    ADMIN_EMAILS: z.string().optional(),
     JWT_SECRET: z.string(),
     COOKIE_DOMAIN: z.string(),
     FRONTEND_URL: z.string().optional(),
@@ -23,6 +24,10 @@ export function loadEnv() {
     MIDTRANS_MERCHANT_ID: z.string(),
     MIDTRANS_CLIENT_KEY: z.string(),
     MIDTRANS_SERVER_KEY: z.string(),
+    CLOUDINARY_CLOUD_NAME: z.string().optional(),
+    CLOUDINARY_API_KEY: z.string().optional(),
+    CLOUDINARY_API_SECRET: z.string().optional(),
+    CLOUDINARY_UPLOAD_FOLDER: z.string().optional(),
   });
 
   const parsed = schema.safeParse(process.env);

@@ -112,12 +112,63 @@ export async function getUsersWithOrders({
 
 export async function updateUser(
   userId: number,
-  data: UserRow,
+  data: Partial<UserRow>,
 ): Promise<UserRow> {
-  const updateData: UserRow = {
-    ...data,
-    updated_at: new Date(),
-  };
+  const allowedFields: Array<keyof UserRow> = [
+    'name',
+    'department',
+    'division',
+    'rank',
+    'nim',
+    'no_wa',
+    'line_id',
+    'role',
+  ];
+
+  const updateData: Partial<UserRow> = {};
+  for (const key of allowedFields) {
+    if (typeof data[key] !== 'undefined') {
+      updateData[key] = data[key] as UserRow[keyof UserRow];
+    }
+  }
+
+  updateData.updated_at = new Date();
+
+  const [updatedUser] = await db
+    .update(schema.usersTable)
+    .set(updateData)
+    .where(eq(schema.usersTable.id, userId))
+    .returning();
+
+  if (!updatedUser) {
+    throw new Error('Pengguna tidak ditemukan.');
+  }
+
+  return updatedUser;
+}
+
+export async function updateMyProfile(
+  userId: number,
+  data: Partial<UserRow>,
+): Promise<UserRow> {
+  const allowedFields: Array<keyof UserRow> = [
+    'name',
+    'department',
+    'division',
+    'rank',
+    'nim',
+    'no_wa',
+    'line_id',
+  ];
+
+  const updateData: Partial<UserRow> = {};
+  for (const key of allowedFields) {
+    if (typeof data[key] !== 'undefined') {
+      updateData[key] = data[key] as UserRow[keyof UserRow];
+    }
+  }
+
+  updateData.updated_at = new Date();
 
   const [updatedUser] = await db
     .update(schema.usersTable)

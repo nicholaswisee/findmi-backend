@@ -5,19 +5,7 @@ import {
   saveUploadedFile,
   type IncomingUploadFile,
 } from '../services/upload.service';
-import { UPLOADS_BASE_URL } from '../constants/storage';
-
-function buildFileUrl(relativePath: string, requestUrl: string) {
-  if (UPLOADS_BASE_URL) {
-    const base = UPLOADS_BASE_URL.endsWith('/')
-      ? UPLOADS_BASE_URL.slice(0, -1)
-      : UPLOADS_BASE_URL;
-    return `${base}${relativePath}`;
-  }
-
-  const url = new URL(requestUrl);
-  return `${url.origin}${relativePath}`;
-}
+import { buildUploadPublicUrl } from '../utils/uploads-path';
 
 const isFileLike = (value: unknown): value is IncomingUploadFile => {
   return (
@@ -37,7 +25,11 @@ export const uploadMediaController = controller(async (c: Context) => {
   }
 
   const stored = await saveUploadedFile(maybeFile);
-  const fileUrl = buildFileUrl(stored.relativePath, c.req.url);
+  const fileUrl = buildUploadPublicUrl(stored.relativePath, c.req.url, {
+    origin: c.req.header('origin'),
+    host: c.req.header('host'),
+    forwardedProto: c.req.header('x-forwarded-proto'),
+  });
 
   return successResponse(
     c,

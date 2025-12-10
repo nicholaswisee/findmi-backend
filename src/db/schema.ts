@@ -98,6 +98,12 @@ export const orderFulfillmentMethodEnum = pgEnum('fulfillment_method_enum', [
   'Delivery',
 ]);
 
+export const manualPaymentStatusEnum = pgEnum('manual_payment_status_enum', [
+  'Pending',
+  'Approved',
+  'Rejected',
+]);
+
 export type OrderFulfillmentMethod =
   (typeof orderFulfillmentMethodEnum.enumValues)[number];
 
@@ -287,3 +293,26 @@ export const orderItemsTable = pgTable(
     ),
   ],
 );
+
+export const manualPaymentProofsTable = pgTable('manual_payment_proofs', {
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  order_id: integer('order_id')
+    .notNull()
+    .references(() => ordersTable.id, { onDelete: 'cascade' }),
+  user_id: integer('user_id')
+    .notNull()
+    .references(() => usersTable.id, { onDelete: 'cascade' }),
+  image_url: text('image_url').notNull(),
+  storage_provider: varchar('storage_provider', { length: 32 })
+    .notNull()
+    .default('local'),
+  storage_key: varchar('storage_key', { length: 255 }),
+  status: manualPaymentStatusEnum('status').notNull().default('Pending'),
+  reviewer_id: integer('reviewer_id').references(() => usersTable.id, {
+    onDelete: 'set null',
+  }),
+  reviewer_note: text('reviewer_note'),
+  reviewed_at: timestamp('reviewed_at'),
+  created_at: timestamp('created_at').defaultNow().notNull(),
+  updated_at: timestamp('updated_at').defaultNow().notNull(),
+});

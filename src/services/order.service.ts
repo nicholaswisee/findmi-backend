@@ -9,13 +9,20 @@ import {
   type BundleSelectionRecord,
 } from './bundleSelection';
 import { getMidtransSnap } from './midtrans';
+import { buildManualPaymentInitiation } from './manualPayment.service';
 import crypto from 'crypto';
+import { assertManualPaymentConfig } from '../constants/manualPayment';
+import { storeImageFile, type StoredImage } from './mediaStorage.service';
+import type { IncomingUploadFile } from './upload.service';
 
 type OrderRow = InferSelectModel<typeof schema.ordersTable>;
 type OrderItemRow = InferSelectModel<typeof schema.orderItemsTable>;
 type ProductRow = InferSelectModel<typeof schema.productsTable>;
 type BundleRow = InferSelectModel<typeof schema.bundlesTable>;
 type UserRow = InferSelectModel<typeof schema.usersTable>;
+type ManualPaymentProofRow = InferSelectModel<
+  typeof schema.manualPaymentProofsTable
+>;
 
 export type CreateOrderItemInput = {
   productId?: number;
@@ -36,6 +43,7 @@ export type CreateOrderPayload = {
   items: CreateOrderItemInput[];
   fulfillmentMethod: OrderFulfillmentMethod;
   deliveryDetails?: DeliveryDetailsInput | null;
+  paymentMethod?: OrderPaymentMethod;
 };
 
 type OrderItemWithDetails = OrderItemRow & {
@@ -51,7 +59,16 @@ export type OrderWithUser = OrderWithItems & {
   user: UserRow;
 };
 
+type OrderPaymentMethod = 'Manual' | 'Midtrans';
 type PaymentStatus = 'Pending' | 'Paid' | 'Failed' | 'Refunded';
+type RequestContext = {
+  requestUrl?: string;
+  headers?: {
+    origin?: string | null;
+    host?: string | null;
+    forwardedProto?: string | null;
+  };
+};
 
 const configuredDeliveryFee = Number(process.env.DELIVERY_FEE);
 const DELIVERY_FEE =
@@ -66,6 +83,11 @@ function resolveFulfillmentMethod(
     return value;
   }
   return 'OTS';
+}
+
+function resolvePaymentMethod(value?: OrderPaymentMethod): OrderPaymentMethod {
+  if (value === 'Manual') return 'Manual';
+  return 'Midtrans';
 }
 
 function calculateDeliveryFee(method: OrderFulfillmentMethod): number {
@@ -491,21 +513,38 @@ export async function getOrderWithUserById(
 export async function createOrder(
   userId: number,
   payload: CreateOrderPayload,
+  options?: {
+    manualProofFile?: IncomingUploadFile;
+    requestContext?: RequestContext;
+  },
 ): Promise<{
   order: OrderWithItems;
-  payment: {
-    provider: 'Midtrans';
-    transactionId?: string;
-    transactionToken?: string;
-    status?: string;
-    checkoutUrl?: string;
-    checkoutPath?: string;
-    expiresAt?: string;
-    instructions?: string;
-  } | null;
+  payment:
+    | {
+        provider: 'Midtrans';
+        transactionId?: string;
+        transactionToken?: string;
+        status?: string;
+        checkoutUrl?: string;
+        checkoutPath?: string;
+        expiresAt?: string;
+        instructions?: string;
+      }
+    | {
+        provider: 'Manual';
+        transactionId?: string;
+        status?: string;
+        expiresAt?: string;
+        instructions?: string;
+        metadata?: Record<string, unknown>;
+      }
+    | null;
 }> {
   assertValidItems(payload.items);
   const fulfillmentMethod = resolveFulfillmentMethod(payload.fulfillmentMethod);
+  const paymentMethod: OrderPaymentMethod = options?.manualProofFile
+    ? 'Manual'
+    : resolvePaymentMethod(payload.paymentMethod);
   const deliveryFee = calculateDeliveryFee(fulfillmentMethod);
   const deliveryDetails = normalizeDeliveryDetails(
     fulfillmentMethod,
@@ -611,6 +650,20 @@ export async function createOrder(
   );
   const totalAmount = itemsTotal + deliveryFee;
 
+  let storedProof: StoredImage | null = null;
+  let createdProof: ManualPaymentProofRow | null = null;
+  let manualTransactionId: string | null = null;
+
+  if (options?.manualProofFile) {
+    const config = assertManualPaymentConfig();
+    storedProof = await storeImageFile(options.manualProofFile, {
+      folder: config.uploadFolder,
+      requestUrl: options.requestContext?.requestUrl,
+      headers: options.requestContext?.headers,
+      requireCloudinary: true,
+    });
+  }
+
   let createdOrder: OrderRow | null = null;
 
   await db.transaction(async (trx) => {
@@ -620,7 +673,7 @@ export async function createOrder(
         user_id: userId,
         total_amount: totalAmount,
         payment_status: 'Pending',
-        payment_method: 'Midtrans',
+        payment_method: paymentMethod,
         fulfillment_method: fulfillmentMethod,
         delivery_fee: deliveryFee,
         delivery_contact_name: deliveryDetails.contactName,
@@ -642,6 +695,49 @@ export async function createOrder(
     );
 
     createdOrder = order;
+
+    if (storedProof) {
+      const now = new Date();
+      const [proof] = await trx
+        .insert(schema.manualPaymentProofsTable)
+        .values({
+          order_id: order.id,
+          user_id: userId,
+          image_url: storedProof.url,
+          storage_provider: storedProof.provider,
+          storage_key: storedProof.publicId ?? storedProof.path ?? null,
+          status: 'Pending',
+          reviewer_id: null,
+          reviewer_note: null,
+          reviewed_at: null,
+          created_at: now,
+          updated_at: now,
+        })
+        .returning();
+
+      manualTransactionId = storedProof.publicId?.trim()
+        ? `manual-${storedProof.publicId}`
+        : proof
+          ? `manual-proof-${proof.id}`
+          : `manual-proof-${order.id}`;
+
+      await trx
+        .update(schema.ordersTable)
+        .set({
+          transaction_id: manualTransactionId,
+          payment_method: 'Manual',
+          updated_at: now,
+        })
+        .where(eq(schema.ordersTable.id, order.id));
+
+      createdProof = proof ?? null;
+      createdOrder = {
+        ...order,
+        transaction_id: manualTransactionId,
+        payment_method: 'Manual',
+        updated_at: now,
+      };
+    }
   });
 
   if (!createdOrder) {
@@ -653,7 +749,10 @@ export async function createOrder(
 
   const orderWithItems = await buildOrderWithItems(createdOrder);
 
-  const payment = await initiateMidtransTransaction(orderWithItems, customer);
+  const payment =
+    paymentMethod === 'Manual'
+      ? buildManualPaymentInitiation(orderWithItems)
+      : await initiateMidtransTransaction(orderWithItems, customer);
 
   return {
     order: orderWithItems,

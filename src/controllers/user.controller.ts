@@ -1,7 +1,11 @@
 import type { Context } from 'hono';
 import { controller } from '../utils/controller';
 import { successResponse, errorResponse } from '../utils/response';
-import { getUsersWithOrders, updateUser } from '../services/user.service';
+import {
+  getUsersWithOrders,
+  updateMyProfile,
+  updateUser,
+} from '../services/user.service';
 import type { UserDepartmentEnum } from '../schemas';
 
 export const getUsersWithOrdersController = controller(async (c: Context) => {
@@ -34,5 +38,25 @@ export const updateUserController = controller(async (c: Context) => {
     return successResponse(c, updatedUser, 'Berhasil memperbarui pengguna.');
   } catch (err) {
     return errorResponse(c, (err as Error).message, 404);
+  }
+});
+
+export const updateMyProfileController = controller(async (c: Context) => {
+  try {
+    const userId = Number(c.get('user')?.userId);
+    if (!userId) {
+      return errorResponse(c, 'Tidak memiliki akses.', 401);
+    }
+
+    const body = await c.req.json();
+    const updatedUser = await updateMyProfile(userId, body);
+
+    return successResponse(
+      c,
+      updatedUser,
+      'Profil berhasil diperbarui (termasuk NIM jika diisi).',
+    );
+  } catch (err) {
+    return errorResponse(c, (err as Error).message, 400);
   }
 });

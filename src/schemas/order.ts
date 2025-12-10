@@ -158,6 +158,7 @@ export const createOrderBodySchema = z
   .object({
     items: z.array(createOrderItemBodySchema).min(1),
     fulfillmentMethod: orderFulfillmentMethodEnum,
+    paymentMethod: orderPaymentMethodEnum.default('Midtrans'),
     deliveryDetails: z
       .object({
         contactName: z.string().trim().min(1).max(255),
@@ -185,7 +186,7 @@ export const paymentInitiationSchema = z
     provider: z.string().openapi({ example: 'DummyPay' }),
     transactionId: z.string().optional(),
     transactionToken: z.string().optional(),
-    status: z.enum(['PENDING', 'PAID']).optional(),
+    status: z.enum(['PENDING', 'PAID', 'FAILED']).optional(),
     checkoutUrl: z.string().url().optional(),
     checkoutPath: z.string().optional(),
     expiresAt: z.string().optional(),

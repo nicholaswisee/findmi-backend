@@ -117,6 +117,18 @@ export const updateUserBodySchema = z
   })
   .openapi('UpdateUserBody');
 
+export const updateMyProfileBodySchema = z
+  .object({
+    name: z.string().max(255).optional(),
+    department: userDepartmentEnum.optional(),
+    division: userDivisionEnum.optional(),
+    rank: userRankEnum.optional(),
+    nim: z.string().max(255).optional(),
+    no_wa: z.string().max(255).optional(),
+    line_id: z.string().max(255).optional(),
+  })
+  .openapi('UpdateMyProfileBody');
+
 export const updateUserParamsSchema = z
   .object({
     id: z.coerce.number().int().positive(),

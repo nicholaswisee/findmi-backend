@@ -3,6 +3,7 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 import { adminMiddleware } from '../middlewares/admin.middleware';
 import {
   getUsersWithOrdersController,
+  updateMyProfileController,
   updateUserController,
 } from '../controllers/user.controller';
 import {
@@ -12,6 +13,7 @@ import {
   updateUserBodySchema,
   updateUserParamsSchema,
   updateUserSuccessSchema,
+  updateMyProfileBodySchema,
 } from '../schemas';
 
 export const userRouter = new OpenAPIHono();
@@ -70,6 +72,41 @@ registerUserRoute(
     },
   },
   getUsersWithOrdersController as UserHandler,
+);
+
+registerUserRoute(
+  {
+    method: 'patch',
+    path: '/me',
+    summary: 'Update my profile',
+    description:
+      'Update own profile fields (name, department, division, rank, nim, no_wa, line_id).',
+    tags: ['User'],
+    request: {
+      body: {
+        content: {
+          'application/json': { schema: updateMyProfileBodySchema },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Profile updated successfully',
+        content: {
+          'application/json': { schema: updateUserSuccessSchema },
+        },
+      },
+      400: {
+        description: 'Bad request',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+    },
+  },
+  updateMyProfileController as UserHandler,
 );
 
 registerUserRoute(

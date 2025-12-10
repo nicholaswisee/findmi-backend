@@ -19,6 +19,11 @@ const CLIENT_ID = required('GOOGLE_CLIENT_ID');
 const CLIENT_SECRET = required('GOOGLE_CLIENT_SECRET');
 const REDIRECT_URI = required('GOOGLE_REDIRECT_URI');
 
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? '')
+  .split(',')
+  .map((email) => email.trim().toLowerCase())
+  .filter((email) => email.length > 0);
+
 export function buildGoogleAuthUrl() {
   const state = randomBytes(16).toString('hex');
   const cookie = createCookie('google_oauth_state', state, {
@@ -85,6 +90,9 @@ export async function findOrCreateUserFromGoogle(google: {
   email: string;
   name?: string;
 }) {
+  const normalizedEmail = google.email.toLowerCase();
+  const isAdminEmail = ADMIN_EMAILS.includes(normalizedEmail);
+
   const existingAccount = await db
     .select()
     .from(schema.accountsTable)
@@ -117,7 +125,7 @@ export async function findOrCreateUserFromGoogle(google: {
       nim: '',
       no_wa: '',
       line_id: '',
-      role: 'user',
+      role: isAdminEmail ? 'admin' : 'user',
       created_at: new Date(),
       updated_at: new Date(),
     })
