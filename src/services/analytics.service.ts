@@ -1,6 +1,10 @@
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db/db';
-import type { OrderPaymentStatusEnum, UserDepartmentEnum } from '../schemas';
+import type {
+  OrderPaymentStatusEnum,
+  UserDepartmentEnum,
+  UserDivisionEnum,
+} from '../schemas';
 
 type RecentOrder = {
   id: number;
@@ -11,6 +15,7 @@ type RecentOrder = {
     id: number;
     name: string;
     department: UserDepartmentEnum;
+    division: UserDivisionEnum;
   };
 };
 
@@ -23,6 +28,11 @@ export type RevenueAnalyticsResult = {
   weeklyRevenue: Array<{ week: string; revenue: number }>;
   departmentBreakdown: Array<{
     department: UserDepartmentEnum;
+    revenue: number;
+    orders: number;
+  }>;
+  divisionBreakdown: Array<{
+    division: UserDivisionEnum;
     revenue: number;
     orders: number;
   }>;
@@ -74,6 +84,21 @@ export async function getRevenueAnalytics({
     .groupBy(schema.usersTable.department)
     .orderBy(desc(sql`SUM(${schema.ordersTable.total_amount})`));
 
+  const divisionBreakdown = await db
+    .select({
+      division: schema.usersTable.division,
+      revenue: sql<number>`COALESCE(SUM(${schema.ordersTable.total_amount}), 0)`,
+      orders: sql<number>`CAST(COUNT(*) AS INT)`,
+    })
+    .from(schema.ordersTable)
+    .innerJoin(
+      schema.usersTable,
+      eq(schema.ordersTable.user_id, schema.usersTable.id),
+    )
+    .where(whereClause)
+    .groupBy(schema.usersTable.division)
+    .orderBy(desc(sql`SUM(${schema.ordersTable.total_amount})`));
+
   const weeklyRevenue = await db
     .select({
       week: sql<string>`TO_CHAR(DATE_TRUNC('week', ${schema.ordersTable.created_at}), '"W"IW YYYY')`,
@@ -99,6 +124,7 @@ export async function getRevenueAnalytics({
       user_id: schema.usersTable.id,
       user_name: schema.usersTable.name,
       user_department: schema.usersTable.department,
+      user_division: schema.usersTable.division,
     })
     .from(schema.ordersTable)
     .innerJoin(
@@ -118,6 +144,7 @@ export async function getRevenueAnalytics({
       id: order.user_id,
       name: order.user_name,
       department: order.user_department,
+      division: order.user_division,
     },
   }));
 
@@ -135,6 +162,11 @@ export async function getRevenueAnalytics({
       })),
     departmentBreakdown: departmentBreakdown.map((row) => ({
       department: row.department,
+      revenue: Number(row.revenue),
+      orders: Number(row.orders),
+    })),
+    divisionBreakdown: divisionBreakdown.map((row) => ({
+      division: row.division,
       revenue: Number(row.revenue),
       orders: Number(row.orders),
     })),
