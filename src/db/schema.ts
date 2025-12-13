@@ -32,6 +32,7 @@ export const userDepartmentEnum = pgEnum('department_enum', [
   'Tutor',
   'Umum',
   'Panitia',
+  'CASIO x Zebra x FindMi',
   'none',
 ]);
 
