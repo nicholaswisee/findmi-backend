@@ -139,8 +139,42 @@ async function buildCartResponse(userId: number): Promise<CartWithItems> {
         ? SIZE_SURCHARGE
         : 0;
 
+    let bundleExtras = 0;
+    if (bundle && Array.isArray(item.selected_bundle_items)) {
+      const bundleItems: Array<{ product_id: number; amount: number }> =
+        Array.isArray(bundle.bundle_items)
+          ? (bundle.bundle_items as Array<{
+              product_id: number;
+              amount: number;
+            }>)
+          : [];
+      for (const selection of item.selected_bundle_items) {
+        const productRow =
+          typeof selection?.product_id === 'number'
+            ? productsMap.get(selection.product_id)
+            : undefined;
+        if (!productRow) continue;
+        const amount =
+          bundleItems.find((bi) => bi.product_id === selection.product_id)
+            ?.amount ?? 1;
+        const optPrice =
+          selection.option && Array.isArray(productRow.options)
+            ? (productRow.options.find(
+                (opt) =>
+                  opt?.label?.toUpperCase() === selection.option?.toUpperCase(),
+              )?.additional_price ?? 0)
+            : 0;
+        const sizeExtra =
+          selection.size && isAboveXL(selection.size) ? SIZE_SURCHARGE : 0;
+        bundleExtras += (optPrice + sizeExtra) * amount;
+      }
+    }
+
     const unitPrice =
-      (product?.price ?? bundle?.price ?? 0) + sizeSurcharge + optionPrice;
+      (product?.price ?? bundle?.price ?? 0) +
+      sizeSurcharge +
+      optionPrice +
+      bundleExtras;
     const lineTotal = unitPrice * item.quantity;
 
     return {

@@ -681,11 +681,36 @@ export async function createOrder(
         productsMap,
         selections: item.bundleSelections,
       });
+      const bundleItems: Array<{ product_id: number; amount: number }> =
+        Array.isArray(bundle.bundle_items)
+          ? (bundle.bundle_items as Array<{
+              product_id: number;
+              amount: number;
+            }>)
+          : [];
+      let extras = 0;
+      for (const selection of normalizedSelections) {
+        const productRow = productsMap.get(selection.product_id);
+        if (!productRow) continue;
+        const amount =
+          bundleItems.find((bi) => bi.product_id === selection.product_id)
+            ?.amount ?? 1;
+        const optPrice =
+          selection.option && Array.isArray(productRow.options)
+            ? (productRow.options.find(
+                (opt) =>
+                  opt?.label?.toUpperCase() === selection.option?.toUpperCase(),
+              )?.additional_price ?? 0)
+            : 0;
+        const sizePrice =
+          selection.size && isAboveXL(selection.size) ? SIZE_SURCHARGE : 0;
+        extras += (optPrice + sizePrice) * amount;
+      }
       return {
         product_id: null,
         bundle_id: bundle.id,
         quantity: item.quantity,
-        unit_price: Number(bundle.price),
+        unit_price: Number(bundle.price) + extras,
         selected_size: null,
         selected_option: null,
         selected_bundle_items: normalizedSelections,

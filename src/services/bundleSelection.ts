@@ -4,6 +4,7 @@ import { schema } from '../db/db';
 export type BundleSelectionInput = {
   productId: number;
   size?: string | null;
+  option?: string | null;
 };
 
 export type BundleSelectionRecord = InferSelectModel<
@@ -22,13 +23,18 @@ export function normalizeBundleSelections({
   productsMap: Map<number, ProductRow>;
   selections?: BundleSelectionInput[] | null;
 }): BundleSelectionRecord[] {
-  const selectionMap = new Map<number, string>(
+  const selectionMap = new Map<number, { size: string; option: string | null }>(
     (selections ?? [])
       .filter(
-        (entry): entry is { productId: number; size?: string | null } =>
-          typeof entry?.productId === 'number',
+        (entry): entry is BundleSelectionInput => entry?.productId != null,
       )
-      .map((entry) => [entry.productId, (entry.size ?? '').toString().trim()]),
+      .map((entry) => [
+        entry.productId,
+        {
+          size: (entry.size ?? '').toString().trim(),
+          option: (entry.option ?? '').toString().trim(),
+        },
+      ]),
   );
 
   const bundleItems: Array<{ product_id: number; amount: number }> =
@@ -43,35 +49,63 @@ export function normalizeBundleSelections({
     const availableSizes = Array.isArray(product?.available_sizes)
       ? product.available_sizes
       : [];
+    const availableOptions = Array.isArray(product?.options)
+      ? product.options
+      : [];
 
     if (availableSizes.length === 0) {
       continue;
     }
 
-    const rawSize = selectionMap.get(item.product_id);
-    if (!rawSize) {
-      throw new Error(
-        `Pilih ukuran untuk produk ${
-          product?.name ?? item.product_id
-        } pada bundle.`,
+    const rawSelection = selectionMap.get(item.product_id);
+    const rawSize = rawSelection?.size ?? '';
+    const rawOption = rawSelection?.option ?? '';
+
+    let matchedSize: string | undefined;
+    let matchedOption: string | undefined;
+
+    if (availableSizes.length > 0) {
+      if (!rawSize) {
+        throw new Error(
+          `Pilih ukuran untuk produk ${
+            product?.name ?? item.product_id
+          } pada bundle.`,
+        );
+      }
+      matchedSize = availableSizes.find(
+        (candidate) => candidate.toUpperCase() === rawSize.toUpperCase(),
       );
+      if (!matchedSize) {
+        throw new Error(
+          `Ukuran ${rawSize} tidak tersedia untuk produk ${
+            product?.name ?? item.product_id
+          }.`,
+        );
+      }
     }
 
-    const matchedSize = availableSizes.find(
-      (candidate) => candidate.toUpperCase() === rawSize.toUpperCase(),
-    );
-
-    if (!matchedSize) {
-      throw new Error(
-        `Ukuran ${rawSize} tidak tersedia untuk produk ${
-          product?.name ?? item.product_id
-        }.`,
-      );
+    if (availableOptions.length > 0) {
+      if (!rawOption) {
+        throw new Error(
+          `Pilih opsi untuk produk ${product?.name ?? item.product_id} pada bundle.`,
+        );
+      }
+      matchedOption = availableOptions.find(
+        (opt) => opt?.label?.toUpperCase() === rawOption.toUpperCase(),
+      )?.label;
+      if (!matchedOption) {
+        throw new Error(
+          `Opsi ${rawOption} tidak tersedia untuk produk ${
+            product?.name ?? item.product_id
+          }.`,
+        );
+      }
     }
 
     normalizedSelections.push({
       product_id: item.product_id,
       size: matchedSize,
+      option: matchedOption,
     });
   }
 

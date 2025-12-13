@@ -175,7 +175,8 @@ export type BundleItem = {
 export type BundleItemsJSON = BundleItem[];
 export type BundleProductSelection = {
   product_id: number;
-  size: string;
+  size?: string;
+  option?: string;
 };
 export type BundleProductSelectionsJSON = BundleProductSelection[];
 
