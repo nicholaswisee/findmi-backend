@@ -55,7 +55,7 @@ export async function googleOAuthCallbackController(c: Context) {
 
     const session = await createSessionCookie(payload);
 
-    const frontend = process.env.FRONTEND_URL ?? 'http://localhost:4242';
+    const frontend = `${process.env.FRONTEND_URL + '/profile'}`;
     const res = c.redirect(`${frontend}?login=success`, 302);
     res.headers.append('Set-Cookie', session.cookie);
     return res;
