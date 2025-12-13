@@ -13,6 +13,36 @@ function normalizeSizes(sizes?: string[]) {
     .filter((size): size is string => size.length > 0);
 }
 
+function normalizeOptions(
+  options?: Array<{
+    label?: string | null;
+    additional_price?: number | null;
+  }> | null,
+) {
+  if (!Array.isArray(options)) return [];
+  const normalized = options
+    .map((opt) => ({
+      label: typeof opt?.label === 'string' ? opt.label.trim() : '',
+      additional_price:
+        typeof opt?.additional_price === 'number' &&
+        Number.isFinite(opt.additional_price)
+          ? Math.max(0, Math.round(opt.additional_price))
+          : 0,
+    }))
+    .filter((opt) => opt.label.length > 0);
+
+  const deduped = new Map<
+    string,
+    { label: string; additional_price: number }
+  >();
+  normalized.forEach((opt) => {
+    if (!deduped.has(opt.label)) {
+      deduped.set(opt.label, opt);
+    }
+  });
+  return Array.from(deduped.values());
+}
+
 function buildProductWhereClause({
   category,
   search,
@@ -111,6 +141,7 @@ export async function createProduct({
   category,
   image_urls,
   available_sizes,
+  options,
 }: {
   name: string;
   price: number;
@@ -119,6 +150,7 @@ export async function createProduct({
   category?: UserDepartmentEnum;
   image_urls?: string[];
   available_sizes?: string[];
+  options?: Array<{ label?: string; additional_price?: number }>;
 }) {
   const [product] = await db
     .insert(schema.productsTable)
@@ -129,6 +161,7 @@ export async function createProduct({
       description: description || '',
       image_urls: image_urls && image_urls.length > 0 ? image_urls : [],
       available_sizes: normalizeSizes(available_sizes),
+      options: normalizeOptions(options),
       remaining_stock: stock,
     })
     .returning({
@@ -139,6 +172,7 @@ export async function createProduct({
       description: schema.productsTable.description,
       image_urls: schema.productsTable.image_urls,
       available_sizes: schema.productsTable.available_sizes,
+      options: schema.productsTable.options,
       remaining_stock: schema.productsTable.remaining_stock,
     });
 
@@ -160,6 +194,7 @@ export async function updateProduct(
     category?: UserDepartmentEnum;
     image_urls?: string[];
     available_sizes?: string[];
+    options?: Array<{ label?: string; additional_price?: number }>;
   }>,
 ) {
   const [existingProduct] = await db
@@ -180,6 +215,9 @@ export async function updateProduct(
   if (data.image_urls !== undefined) updateData.image_urls = data.image_urls;
   if (data.available_sizes !== undefined)
     updateData.available_sizes = normalizeSizes(data.available_sizes);
+  if (data.options !== undefined) {
+    updateData.options = normalizeOptions(data.options);
+  }
 
   const [updatedProduct] = await db
     .update(schema.productsTable)
@@ -193,6 +231,7 @@ export async function updateProduct(
       description: schema.productsTable.description,
       image_urls: schema.productsTable.image_urls,
       available_sizes: schema.productsTable.available_sizes,
+      options: schema.productsTable.options,
       remaining_stock: schema.productsTable.remaining_stock,
     });
 

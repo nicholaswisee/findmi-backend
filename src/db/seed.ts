@@ -119,6 +119,63 @@ const DEFAULT_ADMIN_PASSWORD =
 const DEFAULT_ADMIN_EMAIL =
   process.env.SEED_ADMIN_EMAIL ?? '13524034@admin.findmi.local';
 const DEFAULT_ADMIN_NAME = process.env.SEED_ADMIN_NAME ?? '13524034';
+const SAMPLE_IMAGE = 'https://placehold.co/800x600/png';
+
+const SAMPLE_PRODUCTS = [
+  {
+    name: 'Kaos AMI 2026',
+    description:
+      'Kaos resmi AMI 2026 dengan bahan combed 24s, nyaman dipakai harian.',
+    price: 75000,
+    category: 'All',
+    image_urls: [SAMPLE_IMAGE + '?text=Kaos+AMI'],
+    available_sizes: ['S', 'M', 'L', 'XL', 'XXL'],
+    options: [{ label: 'Cetak nama di punggung', additional_price: 15000 }],
+    remaining_stock: 200,
+  },
+  {
+    name: 'Hoodie Panitia',
+    description:
+      'Hoodie crew untuk panitia. Tambahan biaya berlaku untuk ukuran di atas XL.',
+    price: 175000,
+    category: 'Panitia',
+    image_urls: [SAMPLE_IMAGE + '?text=Hoodie+Panitia'],
+    available_sizes: ['M', 'L', 'XL', 'XXL'],
+    options: [{ label: 'Ukuran XXL', additional_price: 15000 }],
+    remaining_stock: 120,
+  },
+  {
+    name: 'Tote Bag Umum',
+    description: 'Tote bag edisi umum dengan logo AMI, kapasitas hingga 12L.',
+    price: 45000,
+    category: 'Umum',
+    image_urls: [SAMPLE_IMAGE + '?text=Tote+Bag+Umum'],
+    available_sizes: [],
+    options: [],
+    remaining_stock: 150,
+  },
+  {
+    name: 'Sticker Pack Relasi',
+    description: 'Paket stiker vinyl tema Relasi & ITB Day, tahan air.',
+    price: 25000,
+    category: 'Relasi',
+    image_urls: [SAMPLE_IMAGE + '?text=Sticker+Pack'],
+    available_sizes: [],
+    options: [],
+    remaining_stock: 300,
+  },
+  {
+    name: 'Paket Tutor',
+    description:
+      'Paket perlengkapan tutor berisi modul, ID card, dan alat tulis.',
+    price: 95000,
+    category: 'Tutor',
+    image_urls: [SAMPLE_IMAGE + '?text=Paket+Tutor'],
+    available_sizes: [],
+    options: [],
+    remaining_stock: 80,
+  },
+] satisfies Array<typeof schema.productsTable.$inferInsert>;
 
 // function randomDateWithinPastWeeks(weeks = 24) {
 //   const now = new Date();
@@ -292,6 +349,21 @@ async function seedAdminUser() {
   );
 
   return userId;
+}
+
+async function seedSampleProducts() {
+  console.log('Seeding sample products (idempotent)...');
+  const existing = await db
+    .select({ id: schema.productsTable.id })
+    .from(schema.productsTable)
+    .limit(1);
+  if (existing.length > 0) {
+    console.log('Products already exist, skipping.');
+    return;
+  }
+
+  await db.insert(schema.productsTable).values(SAMPLE_PRODUCTS);
+  console.log(`Inserted ${SAMPLE_PRODUCTS.length} sample products.`);
 }
 
 // type SeedProductRecord = {
@@ -487,6 +559,7 @@ async function main() {
   // const userIds = await seedUsers();
   // await seedAccounts(userIds);
   await seedAdminUser();
+  await seedSampleProducts();
   // if (!userIds.includes(adminUserId)) {
   //   userIds.push(adminUserId);
   // }

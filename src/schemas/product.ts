@@ -1,6 +1,16 @@
 import { z } from '@hono/zod-openapi';
 import { createSuccessResponse, deleteResultSchema } from './common/response';
 
+const productOptionSchema = z
+  .object({
+    label: z.string().trim().min(1).openapi({ example: 'Premium packaging' }),
+    additional_price: z
+      .number()
+      .nonnegative()
+      .openapi({ example: 15000, description: 'Biaya tambahan untuk opsi.' }),
+  })
+  .openapi('ProductOption');
+
 export const productSchema = z
   .object({
     id: z.number().int().positive().openapi({ example: 1 }),
@@ -22,6 +32,10 @@ export const productSchema = z
       description:
         'Ukuran produk yang tersedia. Kosongkan bila tidak memiliki ukuran.',
       example: ['S', 'M', 'L'],
+    }),
+    options: z.array(productOptionSchema).openapi({
+      description: 'Daftar opsi berbayar tambahan untuk produk.',
+      example: [{ label: 'Custom name', additional_price: 10000 }],
     }),
     remaining_stock: z.number().int().nonnegative().openapi({ example: 50 }),
   })
@@ -59,6 +73,7 @@ export const createProductBodySchema = z
     available_sizes: z.array(z.string().min(1)).optional().openapi({
       description: 'Daftar ukuran yang dapat dipilih (misal ["S","M","L"]).',
     }),
+    options: z.array(productOptionSchema).optional(),
   })
   .openapi('CreateProductBody');
 

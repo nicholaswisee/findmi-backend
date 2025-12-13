@@ -15,6 +15,7 @@ import {
 export const userRoleEnum = pgEnum('role_enum', ['user', 'admin', 'subadmin']);
 
 export const userDepartmentEnum = pgEnum('department_enum', [
+  'All',
   'Ketua AMI',
   'Kesekjenan',
   'Manajemen Personalia',
@@ -28,6 +29,8 @@ export const userDepartmentEnum = pgEnum('department_enum', [
   'Operasional',
   'Perangkat Lapangan Utama',
   'IT',
+  'Tutor',
+  'Umum',
   'Panitia',
   'none',
 ]);
@@ -107,6 +110,12 @@ export const manualPaymentStatusEnum = pgEnum('manual_payment_status_enum', [
 export type OrderFulfillmentMethod =
   (typeof orderFulfillmentMethodEnum.enumValues)[number];
 
+export type ProductOption = {
+  label: string;
+  additional_price: number;
+};
+export type ProductOptionsJSON = ProductOption[];
+
 export const usersTable = pgTable('users', {
   id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
   name: varchar('name', { length: 255 }).notNull(),
@@ -148,6 +157,10 @@ export const productsTable = pgTable('products', {
     .default(sql`'[]'::jsonb`),
   available_sizes: jsonb('available_sizes')
     .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
+  options: jsonb('options')
+    .$type<ProductOptionsJSON>()
     .notNull()
     .default(sql`'[]'::jsonb`),
   remaining_stock: numeric('remaining_stock', { mode: 'number' })
@@ -209,6 +222,7 @@ export const cartItemsTable = pgTable(
       .notNull()
       .default(sql`'[]'::jsonb`),
     quantity: integer('quantity').notNull().default(1),
+    selected_option: varchar('selected_option', { length: 255 }),
   },
   (table) => [
     check(
@@ -281,6 +295,7 @@ export const orderItemsTable = pgTable(
       .$type<BundleProductSelectionsJSON>()
       .notNull()
       .default(sql`'[]'::jsonb`),
+    selected_option: varchar('selected_option', { length: 255 }),
   },
   (table) => [
     check(

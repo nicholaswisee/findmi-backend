@@ -29,6 +29,7 @@ export type CreateOrderItemInput = {
   bundleId?: number;
   quantity: number;
   size?: string | null;
+  option?: string | null;
   bundleSelections?: BundleSelectionInput[];
 };
 
@@ -68,6 +69,25 @@ type RequestContext = {
     host?: string | null;
     forwardedProto?: string | null;
   };
+};
+
+const SIZE_SURCHARGE = 15000;
+
+const isAboveXL = (size: string | null | undefined) => {
+  const normalized = size?.trim().toUpperCase();
+  if (!normalized || !normalized.endsWith('L')) return false;
+
+  const numericMatch = normalized.match(/^(\d+)XL$/);
+  if (numericMatch) {
+    return Number(numericMatch[1]) >= 2;
+  }
+
+  const xMatch = normalized.match(/^(X+)L$/);
+  if (xMatch?.[1]) {
+    return xMatch[1].length >= 2;
+  }
+
+  return false;
 };
 
 const configuredDeliveryFee = Number(process.env.DELIVERY_FEE);
@@ -580,6 +600,7 @@ export async function createOrder(
     quantity: number;
     unit_price: number;
     selected_size: string | null;
+    selected_option: string | null;
     selected_bundle_items: BundleSelectionRecord[];
   }> = payload.items.map((item) => {
     if (item.productId) {
@@ -590,8 +611,14 @@ export async function createOrder(
       const availableSizes = Array.isArray(product.available_sizes)
         ? product.available_sizes
         : [];
+      const availableOptions = Array.isArray(product.options)
+        ? product.options
+        : [];
       const trimmedSize = typeof item.size === 'string' ? item.size.trim() : '';
+      const trimmedOption =
+        typeof item.option === 'string' ? item.option.trim() : '';
       let selectedSize: string | null = null;
+      let selectedOption: string | null = null;
       if (availableSizes.length > 0) {
         const normalizedInput = trimmedSize.toUpperCase();
         if (!normalizedInput) {
@@ -611,12 +638,35 @@ export async function createOrder(
         }
         selectedSize = matchedSize;
       }
+      if (trimmedOption) {
+        const matchedOption = availableOptions.find(
+          (opt) => opt?.label?.toUpperCase() === trimmedOption.toUpperCase(),
+        );
+        if (!matchedOption) {
+          throw new Error(
+            `Opsi ${item.option} tidak tersedia untuk produk ${
+              product.name ?? product.id
+            }.`,
+          );
+        }
+        selectedOption = matchedOption.label;
+      }
+      const optionPrice =
+        selectedOption && availableOptions.length > 0
+          ? (availableOptions.find(
+              (opt) =>
+                opt?.label?.toUpperCase() === selectedOption.toUpperCase(),
+            )?.additional_price ?? 0)
+          : 0;
+      const sizePrice =
+        selectedSize && isAboveXL(selectedSize) ? SIZE_SURCHARGE : 0;
       return {
         product_id: product.id,
         bundle_id: null,
         quantity: item.quantity,
-        unit_price: Number(product.price),
+        unit_price: Number(product.price) + sizePrice + optionPrice,
         selected_size: selectedSize,
+        selected_option: selectedOption,
         selected_bundle_items: [],
       };
     }
@@ -637,6 +687,7 @@ export async function createOrder(
         quantity: item.quantity,
         unit_price: Number(bundle.price),
         selected_size: null,
+        selected_option: null,
         selected_bundle_items: normalizedSelections,
       };
     }

@@ -7,6 +7,8 @@ export const userRoleEnum = z.enum(['user', 'admin', 'subadmin']).openapi({
 
 export const userDepartmentEnum = z
   .enum([
+    'All',
+    'Umum',
     'Ketua AMI',
     'Kesekjenan',
     'Manajemen Personalia',
@@ -20,6 +22,7 @@ export const userDepartmentEnum = z
     'Operasional',
     'Perangkat Lapangan Utama',
     'IT',
+    'Tutor',
     'Panitia',
     'none',
   ])

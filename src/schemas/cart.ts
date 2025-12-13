@@ -13,6 +13,7 @@ const cartItemProductSchema = productSchema
     image_urls: true,
     remaining_stock: true,
     available_sizes: true,
+    options: true,
   })
   .openapi('CartItemProduct');
 
@@ -50,6 +51,10 @@ export const cartItemSchema = z
     selected_size: z.string().min(1).max(64).nullable().optional().openapi({
       example: 'L',
       description: 'Ukuran yang dipilih untuk produk. Null jika tidak berlaku.',
+    }),
+    selected_option: z.string().min(1).max(255).nullable().optional().openapi({
+      example: 'Premium packaging',
+      description: 'Opsi tambahan yang dipilih. Null jika tidak ada.',
     }),
     quantity: z.number().int().positive().openapi({ example: 2 }),
     unit_price: z.number().nonnegative().openapi({ example: 149000 }),
@@ -113,6 +118,11 @@ export const addCartItemBodySchema = z
       description:
         'Ukuran produk yang dipilih. Wajib diisi untuk produk dengan variasi ukuran.',
       example: 'M',
+    }),
+    option: z.string().trim().min(1).max(255).optional().openapi({
+      description:
+        'Opsi tambahan berbayar yang dipilih. Lewati jika tidak ada opsi.',
+      example: 'Premium packaging',
     }),
   })
   .superRefine((data, ctx) => {

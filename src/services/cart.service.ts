@@ -31,6 +31,24 @@ function isPositiveInteger(value: number) {
   return Number.isInteger(value) && value > 0;
 }
 
+const SIZE_SURCHARGE = 15000;
+
+const isAboveXL = (size: string | null | undefined) => {
+  const normalized = size?.trim().toUpperCase();
+  if (!normalized || !normalized.endsWith('L')) return false;
+
+  const numericMatch = normalized.match(/^(\d+)XL$/);
+  if (numericMatch) {
+    return Number(numericMatch[1]) >= 2;
+  }
+
+  const xMatch = normalized.match(/^(X+)L$/);
+  if (xMatch?.[1]) {
+    return xMatch[1].length >= 2;
+  }
+  return false;
+};
+
 async function ensureCart(userId: number): Promise<CartRow> {
   const [existingCart] = await db
     .select()
@@ -108,7 +126,21 @@ async function buildCartResponse(userId: number): Promise<CartWithItems> {
       ? (bundlesMap.get(item.bundle_id) ?? null)
       : null;
 
-    const unitPrice = product?.price ?? bundle?.price ?? 0;
+    const optionPrice =
+      product && item.selected_option
+        ? ((Array.isArray(product.options) ? product.options : []).find(
+            (opt) =>
+              opt?.label?.toUpperCase() === item.selected_option?.toUpperCase(),
+          )?.additional_price ?? 0)
+        : 0;
+
+    const sizeSurcharge =
+      product && item.selected_size && isAboveXL(item.selected_size)
+        ? SIZE_SURCHARGE
+        : 0;
+
+    const unitPrice =
+      (product?.price ?? bundle?.price ?? 0) + sizeSurcharge + optionPrice;
     const lineTotal = unitPrice * item.quantity;
 
     return {
@@ -147,10 +179,12 @@ export async function addItemToCart(
     bundleId?: number;
     quantity: number;
     size?: string;
+    option?: string;
     bundleSelections?: BundleSelectionInput[];
   },
 ): Promise<CartWithItems> {
-  const { productId, bundleId, quantity, size, bundleSelections } = data;
+  const { productId, bundleId, quantity, size, option, bundleSelections } =
+    data;
 
   if ((!productId && !bundleId) || (productId && bundleId)) {
     throw new Error(
@@ -165,6 +199,7 @@ export async function addItemToCart(
   const cart = await ensureCart(userId);
 
   let normalizedSize: string | null = null;
+  let normalizedOption: string | null = null;
   let normalizedBundleSelections: BundleSelectionRecord[] = [];
 
   if (productId) {
@@ -178,6 +213,9 @@ export async function addItemToCart(
     const availableSizes = Array.isArray(product.available_sizes)
       ? product.available_sizes
       : [];
+    const availableOptions = Array.isArray(product.options)
+      ? product.options
+      : [];
     if (availableSizes.length > 0) {
       const trimmed = typeof size === 'string' ? size.trim().toUpperCase() : '';
       if (!trimmed) {
@@ -190,6 +228,18 @@ export async function addItemToCart(
         throw new Error('Ukuran tidak tersedia untuk produk ini.');
       }
       normalizedSize = matchedSize;
+    }
+
+    const trimmedOption =
+      typeof option === 'string' ? option.trim().toUpperCase() : '';
+    if (trimmedOption) {
+      const matchedOption = availableOptions.find(
+        (opt) => opt?.label?.toUpperCase() === trimmedOption,
+      );
+      if (!matchedOption) {
+        throw new Error('Opsi tidak tersedia untuk produk ini.');
+      }
+      normalizedOption = matchedOption.label;
     }
   }
 
@@ -219,6 +269,11 @@ export async function addItemToCart(
       ? isNull(schema.cartItemsTable.selected_size)
       : eq(schema.cartItemsTable.selected_size, normalizedSize);
 
+  const optionCondition =
+    normalizedOption === null
+      ? isNull(schema.cartItemsTable.selected_option)
+      : eq(schema.cartItemsTable.selected_option, normalizedOption);
+
   const bundleSelectionCondition = eq(
     schema.cartItemsTable.selected_bundle_items,
     normalizedBundleSelections,
@@ -229,6 +284,7 @@ export async function addItemToCart(
         eq(schema.cartItemsTable.product_id, productId),
         sizeCondition,
         isNull(schema.cartItemsTable.bundle_id),
+        optionCondition,
         bundleSelectionCondition,
       )
     : and(
@@ -253,6 +309,7 @@ export async function addItemToCart(
       product_id: productId ?? null,
       bundle_id: bundleId ?? null,
       selected_size: normalizedSize,
+      selected_option: normalizedOption,
       selected_bundle_items: normalizedBundleSelections,
       quantity,
     });

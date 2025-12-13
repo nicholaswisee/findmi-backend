@@ -51,6 +51,10 @@ export const orderItemSchema = z.object({
     description: 'Ukuran produk yang dipilih jika item adalah produk tunggal.',
     example: 'M',
   }),
+  selected_option: z.string().min(1).max(255).nullable().optional().openapi({
+    description: 'Opsi tambahan yang dipilih untuk produk.',
+    example: 'Premium packaging',
+  }),
   selected_bundle_items: z
     .array(
       z.object({
@@ -73,6 +77,7 @@ const orderItemProductSchema = productSchema
     image_urls: true,
     remaining_stock: true,
     available_sizes: true,
+    options: true,
   })
   .openapi('OrderItemProduct');
 
@@ -116,6 +121,10 @@ export const createOrderItemBodySchema = z
     size: z.string().trim().min(1).max(64).optional().openapi({
       description: 'Ukuran yang dipilih untuk produk (abaikan untuk bundle).',
       example: 'L',
+    }),
+    option: z.string().trim().min(1).max(255).optional().openapi({
+      description: 'Opsi tambahan produk jika ada.',
+      example: 'Premium packaging',
     }),
     bundleSelections: z
       .array(
