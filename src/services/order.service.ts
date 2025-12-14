@@ -503,6 +503,243 @@ export async function getAllOrders({
   };
 }
 
+async function getOrdersForExport(
+  filters: OrderListFilters = {},
+): Promise<OrderWithUser[]> {
+  const whereClause = buildOrderWhereClause(filters);
+
+  const baseQuery = db
+    .select({
+      order: schema.ordersTable,
+      user: schema.usersTable,
+    })
+    .from(schema.ordersTable)
+    .innerJoin(
+      schema.usersTable,
+      eq(schema.usersTable.id, schema.ordersTable.user_id),
+    )
+    .orderBy(desc(schema.ordersTable.created_at));
+
+  const rows = whereClause
+    ? await baseQuery.where(whereClause)
+    : await baseQuery;
+
+  const ordersWithItems = await Promise.all(
+    rows.map((row) => buildOrderWithItems(row.order)),
+  );
+
+  return ordersWithItems.map((order, index) => {
+    const user = rows[index]?.user;
+    if (!user) {
+      throw new Error('Pengguna untuk pesanan tidak ditemukan.');
+    }
+    return {
+      ...order,
+      user,
+    };
+  });
+}
+
+async function buildProductLookupForOrders(
+  orders: OrderWithUser[],
+): Promise<Map<number, ProductRow>> {
+  const productIds = new Set<number>();
+
+  for (const order of orders) {
+    for (const item of order.items) {
+      if (typeof item.product_id === 'number') {
+        productIds.add(item.product_id);
+      }
+      for (const selection of item.selected_bundle_items ?? []) {
+        if (selection?.product_id != null) {
+          productIds.add(selection.product_id);
+        }
+      }
+    }
+  }
+
+  return fetchProductsMap(Array.from(productIds));
+}
+
+const CSV_HEADERS = [
+  'order_id',
+  'order_created_at',
+  'order_updated_at',
+  'buyer_id',
+  'buyer_name',
+  'buyer_nim',
+  'buyer_department',
+  'buyer_division',
+  'buyer_rank',
+  'buyer_whatsapp',
+  'buyer_line_id',
+  'payment_status',
+  'payment_method',
+  'transaction_id',
+  'admin_note',
+  'is_taken',
+  'fulfillment_method',
+  'delivery_contact_name',
+  'delivery_phone',
+  'delivery_address',
+  'delivery_notes',
+  'delivery_fee',
+  'order_items_total',
+  'order_total_amount',
+  'item_id',
+  'item_type',
+  'product_id',
+  'bundle_id',
+  'item_name',
+  'item_category',
+  'quantity',
+  'unit_price',
+  'line_total',
+  'selected_size',
+  'selected_option',
+  'bundle_selection_details',
+] as const;
+
+function formatDate(value: unknown): string {
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'string' && value.trim()) {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
+  }
+  return '';
+}
+
+function escapeCsv(value: unknown): string {
+  if (value === null || typeof value === 'undefined') return '';
+  const str = String(value);
+  if (
+    str.includes('"') ||
+    str.includes(',') ||
+    str.includes('\n') ||
+    str.includes('\r')
+  ) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
+function getBundleItemAmount(
+  bundle: BundleRow | null,
+  productId?: number | null,
+): number | undefined {
+  if (!bundle || !Array.isArray(bundle.bundle_items) || productId == null) {
+    return undefined;
+  }
+  const matched = (
+    bundle.bundle_items as Array<{ product_id: number; amount: number }>
+  ).find((item) => item.product_id === productId);
+  return matched?.amount;
+}
+
+function buildBundleSelectionDetails(
+  item: OrderItemWithDetails,
+  productLookup: Map<number, ProductRow>,
+): string {
+  if (
+    !Array.isArray(item.selected_bundle_items) ||
+    item.selected_bundle_items.length === 0
+  ) {
+    return '';
+  }
+
+  return item.selected_bundle_items
+    .map((selection) => {
+      if (!selection) return '';
+      const productName =
+        productLookup.get(selection.product_id)?.name ??
+        `Product ${selection.product_id}`;
+      const amount = getBundleItemAmount(item.bundle, selection.product_id);
+      const detailParts = [];
+      if (selection.size) {
+        detailParts.push(`size: ${selection.size}`);
+      }
+      if ((selection as { option?: string }).option) {
+        detailParts.push(
+          `option: ${(selection as { option?: string }).option}`,
+        );
+      }
+      const amountLabel = typeof amount === 'number' ? ` x${amount}` : '';
+      const detailsLabel =
+        detailParts.length > 0 ? ` (${detailParts.join('; ')})` : '';
+      return `${productName}${amountLabel}${detailsLabel}`;
+    })
+    .filter(Boolean)
+    .join(' | ');
+}
+
+export async function exportOrdersToCsv(
+  filters: OrderListFilters = {},
+): Promise<string> {
+  const orders = await getOrdersForExport(filters);
+  const productLookup = await buildProductLookupForOrders(orders);
+
+  const lines = [CSV_HEADERS.join(',')];
+
+  for (const order of orders) {
+    const orderItemsTotal = order.items.reduce(
+      (acc, item) =>
+        acc + Number(item.unit_price ?? 0) * Number(item.quantity ?? 0),
+      0,
+    );
+
+    for (const item of order.items) {
+      const lineTotal =
+        Number(item.unit_price ?? 0) * Number(item.quantity ?? 0);
+      const bundleSelectionDetails = buildBundleSelectionDetails(
+        item,
+        productLookup,
+      );
+      const row = [
+        order.id,
+        formatDate(order.created_at),
+        formatDate(order.updated_at),
+        order.user?.id,
+        order.user?.name ?? '',
+        order.user?.nim ?? '',
+        order.user?.department ?? '',
+        order.user?.division ?? '',
+        order.user?.rank ?? '',
+        order.user?.no_wa ?? '',
+        order.user?.line_id ?? '',
+        order.payment_status,
+        order.payment_method,
+        order.transaction_id ?? '',
+        order.admin_note ?? '',
+        order.is_taken,
+        order.fulfillment_method,
+        order.delivery_contact_name ?? '',
+        order.delivery_phone ?? '',
+        order.delivery_address ?? '',
+        order.delivery_notes ?? '',
+        order.delivery_fee,
+        orderItemsTotal,
+        order.total_amount,
+        item.id,
+        item.product_id ? 'Product' : 'Bundle',
+        item.product_id ?? '',
+        item.bundle_id ?? '',
+        item.product?.name ?? item.bundle?.name ?? '',
+        item.product?.category ?? item.bundle?.category ?? '',
+        item.quantity,
+        item.unit_price,
+        lineTotal,
+        item.selected_size ?? '',
+        item.selected_option ?? '',
+        bundleSelectionDetails,
+      ];
+
+      lines.push(row.map(escapeCsv).join(','));
+    }
+  }
+
+  return lines.join('\r\n');
+}
+
 export async function getOrderWithUserById(
   orderId: number,
 ): Promise<OrderWithUser | null> {

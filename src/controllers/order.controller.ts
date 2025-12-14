@@ -11,6 +11,7 @@ import {
   updateOrderAdminFields,
   markOrderPaid,
   getOrderWithUserById,
+  exportOrdersToCsv,
 } from '../services/order.service';
 import {
   getManualPaymentSummary,
@@ -339,6 +340,34 @@ export const getAllOrdersController = controller(async (c: Context) => {
   });
 
   return successResponse(c, orders, 'Berhasil mengambil semua pesanan.');
+});
+
+export const exportOrdersCsvController = controller(async (c: Context) => {
+  const search = c.req.query('search');
+  const departmentParam = c.req.query('department');
+  const pickupParam = c.req.query('pickup');
+
+  const pickupFilter =
+    pickupParam === 'taken' || pickupParam === 'pending'
+      ? pickupParam
+      : undefined;
+
+  const csv = await exportOrdersToCsv({
+    search: search?.trim(),
+    department: departmentParam as UserDepartmentEnum | undefined,
+    pickup: pickupFilter,
+  });
+
+  const filename = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+
+  return new Response(csv, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'no-store',
+    },
+  });
 });
 
 export const getAdminOrderByIdController = controller(async (c: Context) => {

@@ -14,6 +14,7 @@ import {
   getManualPaymentSummaryController,
   listManualPaymentProofsController,
   reviewManualPaymentProofController,
+  exportOrdersCsvController,
 } from '../controllers/order.controller';
 import {
   createOrderBodySchema,
@@ -64,6 +65,14 @@ const manualOrderWithProofBodySchema = z.object({
   }),
   file: z.any(),
 });
+
+const exportOrdersQuerySchema = z
+  .object({
+    search: z.string().trim().max(255).optional(),
+    department: userDepartmentEnum.optional(),
+    pickup: z.enum(['taken', 'pending']).optional(),
+  })
+  .openapi('ExportOrdersQuery');
 
 orderRouter.use('*', async (c, next) => {
   const path = c.req.path.toLowerCase();
@@ -242,6 +251,39 @@ registerOrderRoute(
     },
   },
   getMyOrdersController as OrderHandler,
+);
+
+registerOrderRoute(
+  {
+    method: 'get',
+    path: '/admin/export',
+    summary: 'Export all orders as CSV',
+    description:
+      'Download semua pesanan berikut detail item sesuai filter dalam format CSV.',
+    tags: ['Order'],
+    request: {
+      query: exportOrdersQuerySchema,
+    },
+    responses: {
+      200: {
+        description: 'CSV generated',
+        content: { 'text/csv': { schema: z.string() } },
+      },
+      401: {
+        description: 'Unauthorized',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      403: {
+        description: 'Forbidden',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+      500: {
+        description: 'Server error',
+        content: { 'application/json': { schema: errorSchema } },
+      },
+    },
+  },
+  exportOrdersCsvController as OrderHandler,
 );
 
 registerOrderRoute(
