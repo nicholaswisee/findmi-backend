@@ -592,11 +592,19 @@ const CSV_HEADERS = [
   'bundle_id',
   'item_name',
   'item_category',
+  'product_price',
+  'bundle_price',
+  'product_description',
+  'bundle_description',
+  'product_available_sizes',
+  'product_options',
+  'bundle_items',
   'quantity',
   'unit_price',
   'line_total',
   'selected_size',
   'selected_option',
+  'selected_bundle_items_json',
   'bundle_selection_details',
 ] as const;
 
@@ -621,6 +629,14 @@ function escapeCsv(value: unknown): string {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return str;
+}
+
+function toJson(value: unknown): string {
+  try {
+    return JSON.stringify(value ?? '');
+  } catch {
+    return '';
+  }
 }
 
 function getBundleItemAmount(
@@ -694,6 +710,8 @@ export async function exportOrdersToCsv(
         item,
         productLookup,
       );
+      const product = item.product ?? null;
+      const bundle = item.bundle ?? null;
       const row = [
         order.id,
         formatDate(order.created_at),
@@ -725,11 +743,19 @@ export async function exportOrdersToCsv(
         item.bundle_id ?? '',
         item.product?.name ?? item.bundle?.name ?? '',
         item.product?.category ?? item.bundle?.category ?? '',
+        product ? product.price : '',
+        bundle ? bundle.price : '',
+        product ? (product.description ?? '') : '',
+        bundle ? (bundle.description ?? '') : '',
+        product ? toJson(product.available_sizes) : '',
+        product ? toJson(product.options) : '',
+        bundle ? toJson(bundle.bundle_items) : '',
         item.quantity,
         item.unit_price,
         lineTotal,
         item.selected_size ?? '',
         item.selected_option ?? '',
+        toJson(item.selected_bundle_items),
         bundleSelectionDetails,
       ];
 
