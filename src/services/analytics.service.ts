@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { db, schema } from '../db/db';
 import type {
   OrderPaymentStatusEnum,
@@ -53,100 +53,188 @@ export async function getRevenueAnalytics({
   const whereClause =
     conditions.length === 1 ? conditions[0] : and(...conditions);
 
-  const [summaryRow] = await db
-    .select({
-      totalRevenue: sql<number>`COALESCE(SUM(${schema.ordersTable.total_amount}), 0)`,
-      totalOrders: sql<number>`CAST(COUNT(*) AS INT)`,
-    })
-    .from(schema.ordersTable)
-    .innerJoin(
-      schema.usersTable,
-      eq(schema.ordersTable.user_id, schema.usersTable.id),
-    )
-    .where(whereClause);
-
-  const totalRevenue = Number(summaryRow?.totalRevenue ?? 0);
-  const totalOrders = Number(summaryRow?.totalOrders ?? 0);
-  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-
-  const departmentBreakdown = await db
-    .select({
-      department: schema.usersTable.department,
-      revenue: sql<number>`COALESCE(SUM(${schema.ordersTable.total_amount}), 0)`,
-      orders: sql<number>`CAST(COUNT(*) AS INT)`,
-    })
-    .from(schema.ordersTable)
-    .innerJoin(
-      schema.usersTable,
-      eq(schema.ordersTable.user_id, schema.usersTable.id),
-    )
-    .where(whereClause)
-    .groupBy(schema.usersTable.department)
-    .orderBy(desc(sql`SUM(${schema.ordersTable.total_amount})`));
-
-  const divisionBreakdown = await db
-    .select({
-      division: schema.usersTable.division,
-      revenue: sql<number>`COALESCE(SUM(${schema.ordersTable.total_amount}), 0)`,
-      orders: sql<number>`CAST(COUNT(*) AS INT)`,
-    })
-    .from(schema.ordersTable)
-    .innerJoin(
-      schema.usersTable,
-      eq(schema.ordersTable.user_id, schema.usersTable.id),
-    )
-    .where(whereClause)
-    .groupBy(schema.usersTable.division)
-    .orderBy(desc(sql`SUM(${schema.ordersTable.total_amount})`));
-
-  const weeklyRevenue = await db
-    .select({
-      week: sql<string>`TO_CHAR(DATE_TRUNC('week', ${schema.ordersTable.created_at}), '"W"IW YYYY')`,
-      sortKey: sql<string>`TO_CHAR(DATE_TRUNC('week', ${schema.ordersTable.created_at}), 'YYYY-IW')`,
-      revenue: sql<number>`COALESCE(SUM(${schema.ordersTable.total_amount}), 0)`,
-    })
-    .from(schema.ordersTable)
-    .innerJoin(
-      schema.usersTable,
-      eq(schema.ordersTable.user_id, schema.usersTable.id),
-    )
-    .where(whereClause)
-    .groupBy(sql`DATE_TRUNC('week', ${schema.ordersTable.created_at})`)
-    .orderBy(desc(sql`DATE_TRUNC('week', ${schema.ordersTable.created_at})`))
-    .limit(12);
-
-  const recentOrdersRaw = await db
+  const orders = await db
     .select({
       id: schema.ordersTable.id,
-      total_amount: schema.ordersTable.total_amount,
-      payment_status: schema.ordersTable.payment_status,
       created_at: schema.ordersTable.created_at,
+      delivery_fee: schema.ordersTable.delivery_fee,
+      payment_status: schema.ordersTable.payment_status,
       user_id: schema.usersTable.id,
       user_name: schema.usersTable.name,
-      user_department: schema.usersTable.department,
-      user_division: schema.usersTable.division,
+      department: schema.usersTable.department,
+      division: schema.usersTable.division,
+      items_total: sql<number>`
+        COALESCE(SUM(${schema.orderItemsTable.unit_price} * ${schema.orderItemsTable.quantity}), 0)
+      `,
     })
     .from(schema.ordersTable)
+    .innerJoin(
+      schema.orderItemsTable,
+      eq(schema.orderItemsTable.order_id, schema.ordersTable.id),
+    )
     .innerJoin(
       schema.usersTable,
       eq(schema.ordersTable.user_id, schema.usersTable.id),
     )
     .where(whereClause)
-    .orderBy(desc(schema.ordersTable.created_at))
-    .limit(180);
+    .groupBy(
+      schema.ordersTable.id,
+      schema.ordersTable.created_at,
+      schema.ordersTable.delivery_fee,
+      schema.ordersTable.payment_status,
+      schema.usersTable.id,
+      schema.usersTable.name,
+      schema.usersTable.department,
+      schema.usersTable.division,
+    );
 
-  const recentOrders: RecentOrder[] = recentOrdersRaw.map((order) => ({
-    id: order.id,
-    total_amount: Number(order.total_amount),
-    payment_status: order.payment_status as OrderPaymentStatusEnum,
-    created_at: order.created_at?.toISOString() ?? new Date().toISOString(),
-    user: {
-      id: order.user_id,
-      name: order.user_name,
-      department: order.user_department,
-      division: order.user_division,
-    },
-  }));
+  const ordersWithFees = orders.map((row) => {
+    const itemsTotal = Number(row.items_total ?? 0);
+    const deliveryFee = Number(row.delivery_fee ?? 0);
+    const baseTotal = itemsTotal + deliveryFee;
+    const serviceFee = Math.ceil(baseTotal * 0.02);
+    const totalWithFee = baseTotal + serviceFee;
+    return {
+      id: row.id,
+      createdAt: row.created_at ?? new Date(),
+      department: row.department,
+      division: row.division,
+      payment_status: row.payment_status as OrderPaymentStatusEnum,
+      user: {
+        id: row.user_id,
+        name: row.user_name,
+        department: row.department,
+        division: row.division,
+      },
+      totals: {
+        itemsTotal,
+        deliveryFee,
+        serviceFee,
+        totalWithFee,
+      },
+    };
+  });
+
+  const totalRevenue = ordersWithFees.reduce(
+    (acc, order) => acc + order.totals.totalWithFee,
+    0,
+  );
+  const totalOrders = ordersWithFees.length;
+  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+  const departmentBreakdownMap = new Map<
+    UserDepartmentEnum,
+    { revenue: number; orders: number }
+  >();
+  const divisionBreakdownMap = new Map<
+    UserDivisionEnum,
+    { revenue: number; orders: number }
+  >();
+
+  const weeklyRevenueMap = new Map<
+    string,
+    { week: string; sortKey: string; revenue: number }
+  >();
+
+  const getIsoWeek = (date: Date) => {
+    const utcDate = new Date(
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+    );
+    const day = utcDate.getUTCDay() || 7;
+    utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
+    const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil(
+      ((utcDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
+    );
+    const year = utcDate.getUTCFullYear();
+    const paddedWeek = String(weekNo).padStart(2, '0');
+    return {
+      weekLabel: `W${paddedWeek} ${year}`,
+      sortKey: `${year}-${paddedWeek}`,
+    };
+  };
+
+  for (const order of ordersWithFees) {
+    const revenue = order.totals.totalWithFee;
+
+    // Department aggregation
+    const deptAgg = departmentBreakdownMap.get(order.department) ?? {
+      revenue: 0,
+      orders: 0,
+    };
+    departmentBreakdownMap.set(order.department, {
+      revenue: deptAgg.revenue + revenue,
+      orders: deptAgg.orders + 1,
+    });
+
+    // Division aggregation
+    const divisionAgg = divisionBreakdownMap.get(order.division) ?? {
+      revenue: 0,
+      orders: 0,
+    };
+    divisionBreakdownMap.set(order.division, {
+      revenue: divisionAgg.revenue + revenue,
+      orders: divisionAgg.orders + 1,
+    });
+
+    // Weekly aggregation
+    const createdAt =
+      order.createdAt instanceof Date
+        ? order.createdAt
+        : new Date(order.createdAt);
+    const { weekLabel, sortKey } = getIsoWeek(createdAt);
+    const weeklyAgg = weeklyRevenueMap.get(sortKey) ?? {
+      week: weekLabel,
+      sortKey,
+      revenue: 0,
+    };
+    weeklyRevenueMap.set(sortKey, {
+      week: weekLabel,
+      sortKey,
+      revenue: weeklyAgg.revenue + revenue,
+    });
+  }
+
+  const departmentBreakdown = Array.from(departmentBreakdownMap.entries()).map(
+    ([department, value]) => ({
+      department,
+      revenue: value.revenue,
+      orders: value.orders,
+    }),
+  );
+
+  const divisionBreakdown = Array.from(divisionBreakdownMap.entries()).map(
+    ([division, value]) => ({
+      division,
+      revenue: value.revenue,
+      orders: value.orders,
+    }),
+  );
+
+  const weeklyRevenue = Array.from(weeklyRevenueMap.values())
+    .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+    .slice(-12)
+    .map((row) => ({
+      week: row.week,
+      revenue: Number(row.revenue),
+    }));
+
+  const recentOrders: RecentOrder[] = ordersWithFees
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, 180)
+    .map((order) => ({
+      id: order.id,
+      total_amount: order.totals.totalWithFee,
+      payment_status: order.payment_status,
+      created_at:
+        order.createdAt instanceof Date
+          ? order.createdAt.toISOString()
+          : new Date(order.createdAt).toISOString(),
+      user: order.user,
+    }));
 
   return {
     summary: {
