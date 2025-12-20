@@ -71,6 +71,12 @@ export const userDivisionEnum = pgEnum('division_enum', [
   'none',
 ]);
 
+export const userMultikampusEnum = pgEnum('multikampus_enum', [
+  'Bandung',
+  'Jatinangor',
+  'none',
+]);
+
 export const userRankEnum = pgEnum('rank_enum', [
   'Ketua',
   'Kepala Bidang',
@@ -122,6 +128,7 @@ export const usersTable = pgTable('users', {
   name: varchar('name', { length: 255 }).notNull(),
   department: userDepartmentEnum('department').notNull().default('none'),
   division: userDivisionEnum('division').notNull().default('none'),
+  multikampus: userMultikampusEnum('multikampus').notNull().default('none'),
   rank: userRankEnum('rank').notNull().default('none'),
   nim: varchar('nim', { length: 255 }).notNull().default(''),
   no_wa: varchar('no_wa', { length: 255 }).notNull().default(''),

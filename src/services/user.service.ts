@@ -18,6 +18,33 @@ export type UsersWithOrdersResult = {
 };
 
 const MAX_LIMIT = 100;
+const MULTIKAMPUS_REQUIRED_DEPARTMENTS = new Set<UserDepartmentEnum>([
+  'Ketua AMI',
+  'Kesekjenan',
+  'Manajemen Personalia',
+  'Materi dan Metode',
+  'Relasi',
+  'ITB Day',
+  'Paguyuban Membangun',
+  'Diseminasi',
+  'Kreatif',
+  'Fundraising',
+  'Operasional',
+  'Perangkat Lapangan Utama',
+  'IT',
+]);
+
+const assertMultikampusRequirement = (
+  department: UserDepartmentEnum,
+  multikampus?: UserRow['multikampus'] | null,
+) => {
+  if (
+    MULTIKAMPUS_REQUIRED_DEPARTMENTS.has(department) &&
+    (!multikampus || multikampus === 'none')
+  ) {
+    throw new Error('Multikampus wajib diisi.');
+  }
+};
 
 export async function getUsersWithOrders({
   limit = 20,
@@ -118,12 +145,31 @@ export async function updateUser(
     'name',
     'department',
     'division',
+    'multikampus',
     'rank',
     'nim',
     'no_wa',
     'line_id',
     'role',
   ];
+
+  const [currentUser] = await db
+    .select()
+    .from(schema.usersTable)
+    .where(eq(schema.usersTable.id, userId));
+
+  if (!currentUser) {
+    throw new Error('Pengguna tidak ditemukan.');
+  }
+
+  const nextDepartment =
+    (data.department as UserDepartmentEnum | undefined) ??
+    currentUser.department;
+  const nextMultikampus =
+    (data.multikampus as UserRow['multikampus'] | undefined) ??
+    currentUser.multikampus;
+
+  assertMultikampusRequirement(nextDepartment, nextMultikampus);
 
   const updateData: Partial<UserRow> = {};
   for (const key of allowedFields) {
@@ -140,11 +186,7 @@ export async function updateUser(
     .where(eq(schema.usersTable.id, userId))
     .returning();
 
-  if (!updatedUser) {
-    throw new Error('Pengguna tidak ditemukan.');
-  }
-
-  return updatedUser;
+  return updatedUser ?? currentUser;
 }
 
 export async function updateMyProfile(
@@ -155,11 +197,30 @@ export async function updateMyProfile(
     'name',
     'department',
     'division',
+    'multikampus',
     'rank',
     'nim',
     'no_wa',
     'line_id',
   ];
+
+  const [currentUser] = await db
+    .select()
+    .from(schema.usersTable)
+    .where(eq(schema.usersTable.id, userId));
+
+  if (!currentUser) {
+    throw new Error('Pengguna tidak ditemukan.');
+  }
+
+  const nextDepartment =
+    (data.department as UserDepartmentEnum | undefined) ??
+    currentUser.department;
+  const nextMultikampus =
+    (data.multikampus as UserRow['multikampus'] | undefined) ??
+    currentUser.multikampus;
+
+  assertMultikampusRequirement(nextDepartment, nextMultikampus);
 
   const updateData: Partial<UserRow> = {};
   for (const key of allowedFields) {
@@ -176,9 +237,5 @@ export async function updateMyProfile(
     .where(eq(schema.usersTable.id, userId))
     .returning();
 
-  if (!updatedUser) {
-    throw new Error('Pengguna tidak ditemukan.');
-  }
-
-  return updatedUser;
+  return updatedUser ?? currentUser;
 }

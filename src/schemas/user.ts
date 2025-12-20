@@ -73,6 +73,13 @@ export const userDivisionEnum = z
     example: 'Grafis',
   });
 
+export const userMultikampusEnum = z
+  .enum(['Bandung', 'Jatinangor', 'none'])
+  .openapi({
+    description: 'Multikampus',
+    example: 'Bandung',
+  });
+
 export const userRankEnum = z
   .enum([
     'Ketua',
@@ -95,6 +102,7 @@ export const userSchema = z.object({
   name: z.string().max(255).openapi({ example: 'Jason H.' }),
   department: userDepartmentEnum,
   division: userDivisionEnum,
+  multikampus: userMultikampusEnum,
   rank: userRankEnum,
   nim: z.string().max(255).openapi({ example: '13524000' }),
   no_wa: z.string().max(255).openapi({ example: '081234567890' }),
@@ -112,6 +120,7 @@ export const updateUserBodySchema = z
     name: z.string().max(255).optional(),
     department: userDepartmentEnum.optional(),
     division: userDivisionEnum.optional(),
+    multikampus: userMultikampusEnum.optional(),
     rank: userRankEnum.optional(),
     nim: z.string().max(255).optional(),
     no_wa: z.string().max(255).optional(),
@@ -125,6 +134,7 @@ export const updateMyProfileBodySchema = z
     name: z.string().max(255).optional(),
     department: userDepartmentEnum.optional(),
     division: userDivisionEnum.optional(),
+    multikampus: userMultikampusEnum.optional(),
     rank: userRankEnum.optional(),
     nim: z.string().max(255).optional(),
     no_wa: z.string().max(255).optional(),
