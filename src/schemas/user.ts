@@ -74,7 +74,7 @@ export const userDivisionEnum = z
   });
 
 export const userMultikampusEnum = z
-  .enum(['Bandung', 'Jatinangor', 'none'])
+  .enum(['Bandung', 'Jatinangor', 'Cirebon', 'none'])
   .openapi({
     description: 'Multikampus',
     example: 'Bandung',

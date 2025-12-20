@@ -74,6 +74,7 @@ export const userDivisionEnum = pgEnum('division_enum', [
 export const userMultikampusEnum = pgEnum('multikampus_enum', [
   'Bandung',
   'Jatinangor',
+  'Cirebon',
   'none',
 ]);
 
