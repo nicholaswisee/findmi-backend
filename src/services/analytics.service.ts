@@ -211,13 +211,13 @@ export async function getRevenueAnalytics({
     }),
   );
 
-  const weeklyRevenue = Array.from(weeklyRevenueMap.values())
+  const weeklyRevenueRows = Array.from(weeklyRevenueMap.values())
     .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-    .slice(-12)
-    .map((row) => ({
-      week: row.week,
-      revenue: Number(row.revenue),
-    }));
+    .slice(-12);
+  const weeklyRevenue = weeklyRevenueRows.map((row) => ({
+    week: row.week,
+    revenue: Number(row.revenue),
+  }));
 
   const recentOrders: RecentOrder[] = ordersWithFees
     .sort(
@@ -242,12 +242,7 @@ export async function getRevenueAnalytics({
       totalOrders,
       averageOrderValue,
     },
-    weeklyRevenue: weeklyRevenue
-      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
-      .map((row) => ({
-        week: row.week,
-        revenue: Number(row.revenue),
-      })),
+    weeklyRevenue,
     departmentBreakdown: departmentBreakdown.map((row) => ({
       department: row.department,
       revenue: Number(row.revenue),
