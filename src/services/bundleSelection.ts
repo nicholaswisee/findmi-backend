@@ -53,10 +53,6 @@ export function normalizeBundleSelections({
       ? product.options
       : [];
 
-    if (availableSizes.length === 0) {
-      continue;
-    }
-
     const rawSelection = selectionMap.get(item.product_id);
     const rawSize = rawSelection?.size ?? '';
     const rawOption = rawSelection?.option ?? '';
@@ -84,10 +80,12 @@ export function normalizeBundleSelections({
       }
     }
 
-    if (availableOptions.length > 0) {
-      if (!rawOption) {
+    if (rawOption) {
+      if (availableOptions.length === 0) {
         throw new Error(
-          `Pilih opsi untuk produk ${product?.name ?? item.product_id} pada bundle.`,
+          `Opsi ${rawOption} tidak tersedia untuk produk ${
+            product?.name ?? item.product_id
+          }.`,
         );
       }
       matchedOption = availableOptions.find(
